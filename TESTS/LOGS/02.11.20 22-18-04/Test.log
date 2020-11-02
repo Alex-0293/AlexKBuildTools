@@ -1,0 +1,7 @@
+02.11.2020 22:18:04 Starting [PreCommit] sequence.
+02.11.2020 22:18:04 Start creating empty setting file for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1]
+02.11.2020 22:18:04 Finish creating empty setting file for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1]
+02.11.2020 22:18:04 Starting linter [PSScriptAnalyzer] for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1].
+02.11.2020 22:18:05 Finish linter [PSScriptAnalyzer] for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1].
+02.11.2020 22:18:05 Saved log file [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\TESTS\LOGS\02.11.20 22-18-04\PSAnalyzer.log]
+02.11.2020 22:18:06 Test file [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\TESTS\AlexkBuildTools.tests.ps1] not found!

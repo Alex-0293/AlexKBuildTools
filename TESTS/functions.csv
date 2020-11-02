@@ -1,0 +1,62 @@
+"ParentFunctionName";"FunctionName";"Description"
+"";"Set-PSModuleManifest";"Function return Array of ACL for all objects in the Path
+Use Type to filter item. ""file"", ""folder"", ""all""
+"
+"";"Get-FunctionDetails";"AST. Get function Attribute detail.
+"
+"Get-FunctionDetails";"Get-AttributeDetails";"AST. Get function Attribute detail.
+"
+"Get-FunctionDetails";"Get-ParameterDetails";"AST. Get function Attribute detail.
+"
+"Get-FunctionDetails";"Get-HelpContent";"AST. Get function Attribute detail.
+"
+"";"Get-FunctionChanges";"AST. Get function Attribute detail.
+"
+"";"Get-CommitInfo";"AST. Get function Attribute detail.
+"
+"";"Get-ChangeLog";"AST. Get function Attribute detail.
+"
+"Get-ChangeLog";"Invoke-DataFormat";"AST. Get function Attribute detail.
+"
+"";"Get-ModuleVersion";"AST. Get function Attribute detail.
+"
+"";"Start-FunctionTest";"AST. Get function Attribute detail.
+"
+"";"Remove-RightSpace";"AST. Get function Attribute detail.
+"
+"";"Start-ScriptAnalyzer";"AST. Get function Attribute detail.
+"
+"";"Update-HelpContent";"AST. Get function Attribute detail.
+"
+"Update-HelpContent";"Get-NewExamples";"AST. Get function Attribute detail.
+"
+"Update-HelpContent";"Get-NewDescription";"AST. Get function Attribute detail.
+"
+"Update-HelpContent";"Get-NewNotes";"AST. Get function Attribute detail.
+"
+"Update-HelpContent";"Get-NewSynopsis";"AST. Get function Attribute detail.
+"
+"Update-HelpContent";"Get-UpdatedHelpContent";"AST. Get function Attribute detail.
+"
+"Update-HelpContent";"Get-CurrentHelpContent";"AST. Get function Attribute detail.
+"
+"";"Update-ModuleMetaData";"AST. Get function Attribute detail.
+"
+"";"Get-ChangeStatus";"AST. Get function Attribute detail.
+"
+"";"Set-ChangeStatus";"AST. Get function Attribute detail.
+"
+"";"Update-EmptySettings";"AST. Get function Attribute detail.
+"
+"";"Get-ModuleHelpContent";"AST. Get function Attribute detail.
+"
+"";"Get-CommentRegions";"AST. Get function Attribute detail.
+"
+"";"Get-PesterTemplate";"AST. Get function Attribute detail.
+"
+"";"Get-GitCurrentStatus";"AST. Get function Attribute detail.
+"
+"";"Invoke-GitCommit";"AST. Get function Attribute detail.
+"
+"";"Get-CommitLog";"AST. Get function Attribute detail.
+"

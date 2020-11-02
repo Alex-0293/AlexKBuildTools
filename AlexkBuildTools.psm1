@@ -5,25 +5,27 @@
         This module contains functions to service powershell build process. Linter, functional test runner, script updater, comment base help generator, function change log generator and etc.
         Use inside AlexkFramework.
     .NOTES
-        NAME   AlexKBuildTools
-        AUTHOR Alexk
-        DATE   29.10.20
-        VER    1
+        AUTHOR  Alexk
+        CREATED 29.10.20
+        MOD     02.11.20
+        VER     2
 #>
 
 
 Function Set-PSModuleManifest {
-    <#
-        .SYNOPSIS
-            AUTHOR Alexk
-            DATE   08.04.20
-            VER    1
-        .DESCRIPTION
-            Function return Array of ACL for all objects in the Path
-            Use Type to filter item. "file", "folder", "all"
-        .EXAMPLE
-            Set-PSModuleManifest -ModulePath $ModulePath -Author $Author -ModuleVersion $ModuleVersion -RootModule $RootModule -ExportedFunctions $ExportedFunctions
-    #>
+<#
+    .SYNOPSIS
+        Set PS module manifest
+    .DESCRIPTION
+        Function return Array of ACL for all objects in the Path
+        Use Type to filter item. "file", "folder", "all"
+    .EXAMPLE
+        Set-PSModuleManifest -ModulePath $ModulePath -Author $Author -ModuleVersion $ModuleVersion -RootModule $RootModule -ExportedFunctions $ExportedFunctions
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 08.04.20
+        VER     1
+#>
         [CmdletBinding()]
         Param (
             [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Full path to module file." )]
@@ -42,28 +44,44 @@ Function Set-PSModuleManifest {
             [ValidateNotNullOrEmpty()]
             [array] $ExportedFunctions
         )
-    
+
         $PowerShellVersion = $PSVersionTable.PSVersion
         $CLRVersion = $PSVersionTable.CLRVersion
         $DotNetFrameworkVersion = $PSVersionTable.DotNetFrameworkVersion
-    
+
         New-ModuleManifest -Path $ModulePath -ModuleVersion $ModuleVersion  -Author $Author -PowerShellVersion $PowerShellVersion -ClrVersion $CLRVersion  -DotNetFrameworkVersion $DotNetFrameworkVersion -FunctionsToExport $ExportedFunctions -RootModule $RootModule
     }
 function Get-FunctionDetails {
-    <#
+<#
+    .SYNOPSIS
+        Get function details
     .DESCRIPTION
         AST. Get function Attribute detail.
-    #>
+    .EXAMPLE
+        Get-FunctionDetails [-FilePath $FilePath]
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 02.11.20
+        VER     1
+#>
     [CmdletBinding()]
     param (
        [string] $FilePath
     )
 
     function Get-AttributeDetails {
-        <#
+    <#
+        .SYNOPSIS
+            Get attribute details
         .DESCRIPTION
             AST. Get function Attribute detail.
-        #>
+        .EXAMPLE
+            Get-AttributeDetails [-Attributes $Attributes]
+        .NOTES
+            AUTHOR  Alexk
+            CREATED 02.11.20
+            VER     1
+    #>
         [CmdletBinding()]
         param (
             $Attributes
@@ -126,10 +144,18 @@ function Get-FunctionDetails {
         Return $Res
     }
     function Get-ParameterDetails {
-        <#
+    <#
+        .SYNOPSIS
+            Get attribute details
         .DESCRIPTION
             AST. Get function Attribute detail.
-        #>
+        .EXAMPLE
+            Get-AttributeDetails [-Attributes $Attributes]
+        .NOTES
+            AUTHOR  Alexk
+            CREATED 02.11.20
+            VER     1
+    #>
         [CmdletBinding()]
         param (
             $Parameters
@@ -150,7 +176,7 @@ function Get-FunctionDetails {
                     }
                     "ValidateSet" {
                         $PSO | Add-Member -NotePropertyName $Attribute.TypeName -NotePropertyValue $Attribute.Value
-                    }     
+                    }
                     Default {
                         $PSO | Add-Member -NotePropertyName $Attribute.TypeName -NotePropertyValue $Attribute.TypeName
                     }
@@ -162,10 +188,18 @@ function Get-FunctionDetails {
         Return $Res
     }
     function Get-HelpContent {
-        <#
+    <#
+        .SYNOPSIS
+            Get attribute details
         .DESCRIPTION
             AST. Get function Attribute detail.
-        #>
+        .EXAMPLE
+            Get-AttributeDetails [-Attributes $Attributes]
+        .NOTES
+            AUTHOR  Alexk
+            CREATED 02.11.20
+            VER     1
+    #>
         [CmdletBinding()]
         param (
             $Function
@@ -227,10 +261,18 @@ function Get-FunctionDetails {
     return $FunctionArray #| Sort-Object ParentFunctionName , FunctionName -Descending
 }
 Function Get-FunctionChanges {
-    <#
+<#
+    .SYNOPSIS
+        Get function details
     .DESCRIPTION
         AST. Get function Attribute detail.
-    #>
+    .EXAMPLE
+        Get-FunctionDetails [-FilePath $FilePath]
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 02.11.20
+        VER     1
+#>
     [CmdletBinding()]
     param (
         $Functions,
@@ -301,7 +343,7 @@ Function Get-FunctionChanges {
                                         }
                                         if ( $item.ValueFromPipeline.extent.text -ne $item1.ValueFromPipeline.extent.text ){
                                             $ChangedString += "ValueFromPipeline [$($item.ValueFromPipeline.extent.text)->$($item1.ValueFromPipeline.extent.text)]"
-                                        }                       
+                                        }
                                         if ( $item.DefaultValue.extent.text -ne $item1.DefaultValue.extent.text ){
                                             $ChangedString += "DefaultValue [$($item.DefaultValue.extent.text)->$($item1.DefaultValue.extent.text)]"
                                         }
@@ -339,7 +381,7 @@ Function Get-FunctionChanges {
         }
     }
 
-    
+
     $Res = [PSCustomObject]@{
         Added             = $AddedFunctions
         Deleted           = $DeletedFunctios
@@ -348,11 +390,19 @@ Function Get-FunctionChanges {
     }
     return $res
 }
-function Get-LastCommitInfo {
-    <#
+function Get-CommitInfo {
+<#
+    .SYNOPSIS
+        Get function details
     .DESCRIPTION
         AST. Get function Attribute detail.
-    #>
+    .EXAMPLE
+        Get-FunctionDetails [-FilePath $FilePath]
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 02.11.20
+        VER     1
+#>
     [CmdletBinding()]
     param (
         [string] $FilePath
@@ -362,43 +412,82 @@ function Get-LastCommitInfo {
 
     Set-Location -path $Location
 
-    $GitData = & git log --name-only
+
+    $GitConsoleData = & git log --name-only
 
     $CommitCounter = 0
     $lineCounter = 0
-    foreach ( $Line in $GitData ){
+    foreach ( $Line in $GitConsoleData ){
         if ( $line.contains("commit ") ){
             $CommitCounter++
         }
         if ( $CommitCounter -eq 2 ){
-            $GitData = $GitData[0..($lineCounter - 1)]
+            $GitData = $GitConsoleData[0..($lineCounter - 1)]
             break
         }
         $lineCounter++
     }
+    if ( $CommitCounter -eq 1 ){
+        $GitData = $GitConsoleData
+    }
 
+    foreach ( $Line in $GitData ) {
+        switch -wildcard ( $Line ) {
+            "commit*" {
+                $Commit = $Line.split(" ")[1].Trim()
+            }
+            "Merge*" {
+                $Merge = $Line.split(" ")[1].Trim()
+            }
+            "Author*" {
+                $Author = $Line.split(" ")[1].Trim()
+            }
+            "Date*" {
+                $Date = ($Line.split(" ") | Select-Object -last 6) -join " "
+            }
+            Default {
+                if ( $Line.trim() -ne $Line ){
+                    if ( $line -like "    *" ){
+                        $Message = $line.trim()
+                    }
+                }
+            }
+        }
+    }
     $ModifiedData  = @()
-    $Modified = $GitData[5..($GitData.count-1)]
+    if ( $Message ) {
+        $Start = $GitData | Select-String -Pattern $Message
+    }
+    $Modified = $GitData[($Start.LineNumber)..($GitData.count-1)]
     foreach ( $line in $Modified ){
         if ( $line.Trim() ) {
             $ModifiedData += $line.Trim()
         }
     }
     $LastCommitData = [PSCustomObject]@{
-        Hash     = $GitData[0].split(" ")[1].Trim()
-        Author   = $GitData[1].split(":")[1].trim()
-        Date     = $GitData[2].split("Date:")[1].trim()
+        Hash     = $Commit
+        Merge    = $Merge
+        Author   = $Author
+        Date     = $Date
         Modified = $ModifiedData
-        Message  = $GitData[4].trim()
+        Message  = $Message
     }
 
     Return $LastCommitData
 }
 function Get-ChangeLog {
-    <#
+<#
+    .SYNOPSIS
+        Get function details
     .DESCRIPTION
         AST. Get function Attribute detail.
-    #>
+    .EXAMPLE
+        Get-FunctionDetails [-FilePath $FilePath]
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 02.11.20
+        VER     1
+#>
     [CmdletBinding()]
     param (
         [string] $FilePath,
@@ -408,10 +497,18 @@ function Get-ChangeLog {
     )
 
     function Invoke-DataFormat {
-        <#
+    <#
+        .SYNOPSIS
+            Get attribute details
         .DESCRIPTION
             AST. Get function Attribute detail.
-        #>
+        .EXAMPLE
+            Get-AttributeDetails [-Attributes $Attributes]
+        .NOTES
+            AUTHOR  Alexk
+            CREATED 02.11.20
+            VER     1
+    #>
         [CmdletBinding()]
         param (
             $Data
@@ -452,7 +549,7 @@ function Get-ChangeLog {
                 Else {
                     $Item = $Type.PadRight($PSO.Typelen, " ") + " " + $Var
                 }
-                $NewData += $item 
+                $NewData += $item
 
             }
         }
@@ -468,7 +565,7 @@ function Get-ChangeLog {
 
     Set-Location -path $Location
 
-    $LastCommitData    = Get-LastCommitInfo -FilePath $FilePath
+    $LastCommitData    = Get-CommitInfo -FilePath $FilePath
     $LastGitCommitHash = $LastCommitData.Hash
 
 
@@ -568,10 +665,18 @@ function Get-ChangeLog {
     }
 }
 function Get-ModuleVersion {
-    <#
+<#
+    .SYNOPSIS
+        Get function details
     .DESCRIPTION
         AST. Get function Attribute detail.
-    #>
+    .EXAMPLE
+        Get-FunctionDetails [-FilePath $FilePath]
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 02.11.20
+        VER     1
+#>
     [CmdletBinding()]
     param(
         [string] $FilePath
@@ -603,10 +708,18 @@ function Get-ModuleVersion {
     Return $Res
 }
 Function Start-FunctionTest {
-    <#
+<#
+    .SYNOPSIS
+        Get function details
     .DESCRIPTION
         AST. Get function Attribute detail.
-    #>
+    .EXAMPLE
+        Get-FunctionDetails [-FilePath $FilePath]
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 02.11.20
+        VER     1
+#>
     [CmdletBinding()]
     param (
         [string] $FilePath,
@@ -742,7 +855,7 @@ Function Start-FunctionTest {
         $Log += ""
         $Log += "Total time: $(Format-TimeSpan -TimeSpan $res.duration -round 2)"
         $Log += ""
-    
+
         if ( $res.FailedCount ){
             $res = $false
             Add-ToLog -Message "Failed pester tests [$($configuration.Run.Path)]"  -logFilePath $LogPath -Display -Status "error"
@@ -754,7 +867,7 @@ Function Start-FunctionTest {
         if ( $SaveLog ){
             if ( !$LogFileName ){
                 $LogPathParent = Split-Path -path $LogPath -Parent
-                $LogFileName   = "$LogPathParent\Pester.log"   
+                $LogFileName   = "$LogPathParent\Pester.log"
             }
 
             if ( $Log ){
@@ -771,10 +884,18 @@ Function Start-FunctionTest {
     Return $res
 }
 Function Remove-RightSpace {
-    <#
+<#
+    .SYNOPSIS
+        Get function details
     .DESCRIPTION
         AST. Get function Attribute detail.
-    #>
+    .EXAMPLE
+        Get-FunctionDetails [-FilePath $FilePath]
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 02.11.20
+        VER     1
+#>
     [CmdletBinding()]
     param (
         [string] $FilePath,
@@ -799,7 +920,7 @@ Function Remove-RightSpace {
     }
 
     If ( $HasChanged ){
-        
+
         if ( $DebugMode ){
             $Location     = Split-Path -path $FilePath
             $FileName     = Split-Path -path $FilePath -Leaf
@@ -830,14 +951,22 @@ Function Remove-RightSpace {
     else {
         Add-ToLog -Message "Nothing to remove for [$FilePath]"  -logFilePath $LogPath -Display -Status "info"
     }
-    
+
     return $res
 }
 Function Start-ScriptAnalyzer {
-    <#
+<#
+    .SYNOPSIS
+        Get function details
     .DESCRIPTION
         AST. Get function Attribute detail.
-    #>
+    .EXAMPLE
+        Get-FunctionDetails [-FilePath $FilePath]
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 02.11.20
+        VER     1
+#>
     [CmdletBinding()]
     param (
         [string] $FilePath,
@@ -905,10 +1034,18 @@ Function Start-ScriptAnalyzer {
     Return $Res
 }
 Function Update-HelpContent {
-    <#
+<#
+    .SYNOPSIS
+        Get function details
     .DESCRIPTION
         AST. Get function Attribute detail.
-    #>
+    .EXAMPLE
+        Get-FunctionDetails [-FilePath $FilePath]
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 02.11.20
+        VER     1
+#>
     [CmdletBinding()]
     param(
         [string] $FilePath,
@@ -918,23 +1055,31 @@ Function Update-HelpContent {
     )
 
     Function Get-NewExamples {
-        <#
+    <#
+        .SYNOPSIS
+            Get attribute details
         .DESCRIPTION
             AST. Get function Attribute detail.
-        #>
+        .EXAMPLE
+            Get-AttributeDetails [-Attributes $Attributes]
+        .NOTES
+            AUTHOR  Alexk
+            CREATED 02.11.20
+            VER     1
+    #>
         [CmdletBinding()]
         Param(
             [Parameter( Mandatory = $true, Position = 0, HelpMessage = "AST Function." )]
             $Function
         )
-    
+
         [array] $Examples = @()
         [array] $ParameterSets = $Function.Parameters.ParameterSetName |  Where-Object { $null -ne $_ } | Select-Object -Unique
-    
+
         if ( !$ParameterSets ) {
             $ParameterSets += ""
         }
-    
+
         Foreach ( $ParameterSet in $ParameterSets ){
             $ExampleParams = @()
             if ( $ParameterSet ){
@@ -985,7 +1130,7 @@ Function Update-HelpContent {
                     $example += "[-$($item.Name) `$$($item.Name)$DefaultValue] "
                }
             }
-    
+
             if ( $ParameterSet ){
                 $Examples += "    $($example.TrimEnd())"
                 $examples  += ""
@@ -994,28 +1139,36 @@ Function Update-HelpContent {
                 $Examples += $example.TrimEnd()
             }
         }
-    
-        Return $Examples
+
+        Return $Examples.trim()
     }
     Function Get-NewDescription {
-        <#
+    <#
+        .SYNOPSIS
+            Get attribute details
         .DESCRIPTION
             AST. Get function Attribute detail.
-        #>
+        .EXAMPLE
+            Get-AttributeDetails [-Attributes $Attributes]
+        .NOTES
+            AUTHOR  Alexk
+            CREATED 02.11.20
+            VER     1
+    #>
         [CmdletBinding()]
         Param(
             [Parameter( Mandatory = $true, Position = 0, HelpMessage = "AST Function." )]
             $Function,
             [string] $FilePath
         )
-    
+
         if ( $FilePath ) {
             $Location        = Split-Path -path $FilePath
             $DescriptionPath = "$Location\$($Global:gsTESTSFolder)\NewFunctions.csv"
-    
+
             if ( test-path -path $DescriptionPath ) {
                 $FuncArray = Import-Csv -Path $DescriptionPath -Delimiter ";"
-    
+
                 $FunctionDescription = ($FuncArray | Where-Object { $_.FunctionName -eq $Function.FunctionName }).Description
             }
         }
@@ -1025,15 +1178,23 @@ Function Update-HelpContent {
         Else {
             $res = $Function.HelpContent.Description
         }
-    
+
         $res = $res -split "`n"
         return $res
     }
-    Function Get-NewSynopsis {
-        <#
+    Function Get-NewNotes {
+    <#
+        .SYNOPSIS
+            Get attribute details
         .DESCRIPTION
             AST. Get function Attribute detail.
-        #>
+        .EXAMPLE
+            Get-AttributeDetails [-Attributes $Attributes]
+        .NOTES
+            AUTHOR  Alexk
+            CREATED 02.11.20
+            VER     1
+    #>
         [CmdletBinding()]
         Param(
             [Parameter( Mandatory = $true, Position = 0, HelpMessage = "AST Function." )]
@@ -1041,21 +1202,25 @@ Function Update-HelpContent {
             [switch] $UpdateVersion,
             [string] $DefaultAuthor = "Alexk"
         )
-    
-        
-        $Synopsis      = $Function.HelpContent.Synopsis
+
+        $Notes = $Function.HelpContent.Notes
         $PSO = [PSCustomObject]@{
-            Author = $null
-            Date   = $null
-            Mod    = $null
-            Ver    = 0
-            Other  = @()
+            Author  = $null
+            Created = $null
+            Mod     = $null
+            Ver     = 0
+            Other   = @()
         }
-    
-        if ( $Synopsis ){
-            $Synopsis = $Synopsis.split("`n")
-            foreach ( $item in $Synopsis ){
-    
+
+        if ( $Notes -notlike "*AUTHOR*" -and $Function.HelpContent.Synopsis ){
+            $Notes = $Function.HelpContent.Synopsis
+        }
+
+        if ( $Notes ){
+            $Notes = $Notes.trim()
+            $Notes = $Notes.split("`n")
+            foreach ( $item in $Notes ){
+
                 switch -wildcard ( $item ) {
                     "*AUTHOR*" {
                         $Author     = $item.replace("AUTHOR","").trim()
@@ -1063,11 +1228,21 @@ Function Update-HelpContent {
                     }
                     "*DATE*" {
                         $Date     = $item.replace("DATE","").trim()
-                        $PSO.Date = $Date
+                        $PSO.Created= $Date
                         try {
-                            $PSO.Date = $Date
+                            $PSO.Created= $Date
                             $Date = (get-date $Date -Format "dd.MM.yy")
-                            $PSO.Date = $Date
+                            $PSO.Created= $Date
+                        }
+                        Catch {}
+                    }
+                    "*CREATED*" {
+                        $Date     = $item.replace("CREATED","").trim()
+                        $PSO.Created= $Date
+                        try {
+                            $PSO.Created= $Date
+                            $Date = (get-date $Date -Format "dd.MM.yy")
+                            $PSO.Created= $Date
                         }
                         Catch {}
                     }
@@ -1087,7 +1262,6 @@ Function Update-HelpContent {
                             $PSO.Ver = $Ver
                         }
                         Catch {}
-                        
                     }
                     Default {
                         $Other     = $item.trim()
@@ -1096,13 +1270,13 @@ Function Update-HelpContent {
                 }
             }
         }
-    
+
         if ( $Function.IsNew ){
             if ( !$PSO.Author ){
                 $PSO.Author = $DefaultAuthor
             }
-            if ( !$PSO.Date ){
-                $PSO.Date = Get-Date -Format "dd.MM.yy"
+            if ( !$PSO.Created){
+                $PSO.Created= Get-Date -Format "dd.MM.yy"
             }
             if ( !$PSO.Ver ){
                 $PSO.Ver = 1
@@ -1112,11 +1286,11 @@ Function Update-HelpContent {
             if ( !$PSO.Author ){
                 $PSO.Author = $DefaultAuthor
             }
-            if ( !$PSO.Date ){
-                $PSO.Date = Get-Date -Format "dd.MM.yy"
+            if ( !$PSO.Created){
+                $PSO.Created= Get-Date -Format "dd.MM.yy"
             }
-            
-            if ( $PSO.Date -ne (Get-Date -Format "dd.MM.yy") ){
+
+            if ( $PSO.Created-ne (Get-Date -Format "dd.MM.yy") ){
                 if ($UpdateVersion){
                     $PSO.Mod = Get-Date -Format "dd.MM.yy"
                 }
@@ -1136,8 +1310,8 @@ Function Update-HelpContent {
             if ( !$PSO.Author ){
                 $PSO.Author = $DefaultAuthor
             }
-            if ( !$PSO.Date ){
-                $PSO.Date = Get-Date -Format "dd.MM.yy"
+            if ( !$PSO.Created){
+                $PSO.Created= Get-Date -Format "dd.MM.yy"
             }
             if ( !$PSO.Ver ){
                 $PSO.Ver = "1"
@@ -1146,23 +1320,71 @@ Function Update-HelpContent {
         $Res = @()
         if ( $PSO.Mod ) {
             $res += "AUTHOR  $($PSO.Author)"
-            $res += "CREATED $($PSO.Date)"
+            $res += "CREATED $($PSO.Created)"
             $res += "MOD     $($PSO.Mod)"
             $res += "VER     $($PSO.Ver)"
         }
         Else {
             $res += "AUTHOR  $($PSO.Author)"
-            $res += "CREATED $($PSO.Date)"
+            $res += "CREATED $($PSO.Created)"
             $res += "VER     $($PSO.Ver)"
         }
 
         return $res
     }
-    Function Get-UpdatedHelpContent {
-        <#
+    Function Get-NewSynopsis {
+    <#
+        .SYNOPSIS
+            Get attribute details
         .DESCRIPTION
             AST. Get function Attribute detail.
-        #>
+        .EXAMPLE
+            Get-AttributeDetails [-Attributes $Attributes]
+        .NOTES
+            AUTHOR  Alexk
+            CREATED 02.11.20
+            VER     1
+    #>
+        [CmdletBinding()]
+        Param(
+            [Parameter( Mandatory = $true, Position = 0, HelpMessage = "AST Function." )]
+            $Function,
+            [switch] $UpdateVersion
+        )
+
+        $Res = ""
+        $Synopsis = $Function.HelpContent.Synopsis
+        if ( $Synopsis ) {
+            if ( @($Synopsis.split("`n")).count -gt 2 ){
+                if ( $Function.FunctionName ){
+                    $res = Split-words -word $Function.FunctionName
+                }
+            }
+            Else {
+                $res = $Synopsis.trim()
+            }
+        }
+        Else {
+            if ( $Function.FunctionName ){
+                $res = Split-words -word $Function.FunctionName
+            }
+        }
+
+        return $res
+    }
+    Function Get-UpdatedHelpContent {
+    <#
+        .SYNOPSIS
+            Get attribute details
+        .DESCRIPTION
+            AST. Get function Attribute detail.
+        .EXAMPLE
+            Get-AttributeDetails [-Attributes $Attributes]
+        .NOTES
+            AUTHOR  Alexk
+            CREATED 02.11.20
+            VER     1
+    #>
         [CmdletBinding()]
         param (
             [Parameter( Mandatory = $True, Position = 0, HelpMessage = "Function metadata.")]
@@ -1184,14 +1406,22 @@ Function Update-HelpContent {
             [switch] $Synopsis,
             [switch] $UpdateVersion
         )
-    
+
         $HelpContent = $Function.HelpContent
-    
+
         if ( $Examples ){
             $NewExample = Get-NewExamples -Function $Function
         }
         if ( $Description ){
             $NewDescription = Get-NewDescription -Function $Function -FilePath $FilePath
+        }
+        if ( $Notes ){
+            if ( $UpdateVersion ){
+                $NewNotes = Get-NewNotes -Function $Function -UpdateVersion
+            }
+            Else {
+                $NewNotes = Get-NewNotes -Function $Function
+            }
         }
         if ( $Synopsis ){
             if ( $UpdateVersion ){
@@ -1201,20 +1431,20 @@ Function Update-HelpContent {
                 $NewSynopsis = Get-NewSynopsis -Function $Function
             }
         }
-    
+
         $Base = $Function.StartColumnNumber - 1
-    
+
         $ItemLevel       =  0
         $Indent          =  4
         $NewHelpContent  =  @()
         $NewHelpContent += "$(''.PadLeft($Base + $ItemLevel * $Indent , " "))<#"
-    
+
         $Fields = "Synopsis", "Description", "Example", "Component", "ForwardHelpCategory", "ForwardHelpTargetName", "Functionality", "Inputs", "Links", "MamlHelpFile", "Notes", "Parameters", "RemoteHelpRunspace", "Role"
         $ItemLevel ++
         foreach ( $Field in  $fields ){
             $NewField   = Get-Variable -name "New$Field" -ErrorAction SilentlyContinue
             $SavedField = $Function.HelpContent.$Field
-            if ( $NewField ){
+            if ( $NewField.Value ){
                 $NewHelpContent += "$(''.PadLeft($Base + $ItemLevel * $Indent , " ")).$($Field.ToUpper())"
                 $ItemLevel ++
                 foreach ( $item in $NewField.Value ){
@@ -1245,29 +1475,42 @@ Function Update-HelpContent {
         }
         $ItemLevel --
         $NewHelpContent += "$(''.PadLeft($Base + $ItemLevel * $Indent , " "))#>"
-    
+
         Return $NewHelpContent
     }
     Function Get-CurrentHelpContent {
-        <#
+    <#
+        .SYNOPSIS
+            Get attribute details
         .DESCRIPTION
             AST. Get function Attribute detail.
-        #>
+        .EXAMPLE
+            Get-AttributeDetails [-Attributes $Attributes]
+        .NOTES
+            AUTHOR  Alexk
+            CREATED 02.11.20
+            VER     1
+    #>
         [CmdletBinding()]
         Param(
             [Parameter( Mandatory = $true, Position = 0, HelpMessage = "AST Function." )]
             $Function
         )
-    
+
         $HelpContent = [PSCustomObject]@{
             Function      = ""
             HelpContent   = ""
         }
         if ( $Function.HelpContent ){
-            $HelpContent.Function    = $Function.text.split("{")[0] + "{"
-            $SpaceCounter = $Function.text.split($HelpContent.Function)[1].split("<#")[0].length - 2
-            $HelpContent.HelpContent = (''.PadLeft( $SpaceCounter, " ")) + "<#" + $Function.text.split("<#")[1].split("#>")[0] + "#>"
-            $Stop
+            if ( $Function.FunctionName ) {
+                $HelpContent.Function    = $Function.text.split("{")[0] + "{"
+                $SpaceCounter            = $Function.text.split($HelpContent.Function)[1].split("<#")[0].length - 2
+                $HelpContent.HelpContent = (''.PadLeft( $SpaceCounter, " ")) + "<#" + $Function.text.split("<#")[1].split("#>")[0] + "#>"
+            }
+            Else {
+                $SpaceCounter            = $Function.text.split("<#")[0].count - 1
+                $HelpContent.HelpContent = (''.PadLeft( $SpaceCounter, " ")) + "<#" + $Function.text.split("<#")[1].split("#>")[0] + "#>"
+            }
         }
         Else {
             $HelpContent.Function = $Function.text.split("{")[0] + "{"
@@ -1286,16 +1529,56 @@ Function Update-HelpContent {
         $Location        = Split-Path -path $FilePath
         $DescriptionPath = "$Location\$($Global:gsTESTSFolder)\functions.csv"
         $Changes.FunctionList | Select-Object ParentFunctionName, FunctionName, Description | Export-Csv -path $DescriptionPath -Delimiter ";"
+
+        # Update module help content
+        $EndLineNumber = ($Changes.FunctionList | Sort-Object StartLineNumber | Select-Object -First 1).StartLineNumber - 2
+        $ModuleText    = Get-Content -Path $FilePath -Raw -ReadCount $EndLineNumber
+
+        $PSO = [PSCustomObject]@{
+            FunctionName      = ""
+            HelpContent       = Get-ModuleHelpContent -FilePath $FilePath
+            IsNew             = $false
+            IsChanged         = $UpdateVersion
+            StartColumnNumber = 1
+            Text              = $ModuleText
+        }
+
+        $UpdatedHelpContent = Get-UpdatedHelpContent -Function $PSO -FilePath $FilePath -Examples -Description -Notes -synopsis -UpdateVersion
+        $CurrentHelpContent = Get-CurrentHelpContent -Function $PSO
+
+        $ReplaceData = [PSCustomObject]@{
+            Function = ""
+            Find     = ""
+            Replace  = ""
+        }
+
+        if ( $CurrentHelpContent.HelpContent ){
+            $ReplaceData.Function = $PSO.FunctionName
+            $ReplaceData.Find     = $CurrentHelpContent.HelpContent
+            $ReplaceData.Replace  = $UpdatedHelpContent
+            $ReplaceArray        += $ReplaceData
+        }
+        Else {
+            $CurrentHelpContent   = $CurrentHelpContent.function
+            $NewHelpContent       = @()
+            $NewHelpContent      += $CurrentHelpContent
+            $NewHelpContent      += $UpdatedHelpContent
+            $ReplaceData.Function = $PSO.FunctionName
+            $ReplaceData.Find     = $CurrentHelpContent
+            $ReplaceData.Replace  = $NewHelpContent
+            $ReplaceArray        += $ReplaceData
+        }
     }
 
+    # Update function help content
     foreach ( $item in ( $Changes.FunctionList | Sort-Object StartLineNumber ) ){
         #write-host $item.FunctionName
         $CurrentHelpContent = Get-CurrentHelpContent -Function $item
         if ( $UpdateVersion ){
-            $UpdatedHelpContent = Get-UpdatedHelpContent -Function $item -FilePath $FilePath -Examples -Description -Synopsis -UpdateVersion
+            $UpdatedHelpContent = Get-UpdatedHelpContent -Function $item -FilePath $FilePath -Examples -Description -Notes -synopsis -UpdateVersion
         }
         Else {
-            $UpdatedHelpContent = Get-UpdatedHelpContent -Function $item -FilePath $FilePath -Examples -Description -Synopsis
+            $UpdatedHelpContent = Get-UpdatedHelpContent -Function $item -FilePath $FilePath -Examples -Description  -Notes -Synopsis
         }
 
         $ReplaceData = [PSCustomObject]@{
@@ -1322,8 +1605,8 @@ Function Update-HelpContent {
         }
     }
 
-    #$FileContent        = $FileContent.Replace( $CurrentHelpContent, $NewHelpContent )
-    $FileContent = Get-Content $FilePath -Raw
+    #$FileContent     = $FileContent.Replace( $CurrentHelpContent, $NewHelpContent )
+    $FileContent      = Get-Content $FilePath -Raw
     $SavedFileContent = $FileContent.Clone()
     foreach ( $item in $ReplaceArray ){
         $replace     = $item.replace -join "`n"
@@ -1338,10 +1621,10 @@ Function Update-HelpContent {
     }
 
     $FileContent = $FileContent.TrimEnd()
-    $Location     = Split-Path -path $FilePath
-    $FileName     = Split-Path -path $FilePath -Leaf
-    $TmpFilename  = "$Location\tmp.$FileName"
-    $FileContent | Out-File -FilePath $TmpFilename -force -Encoding utf8BOM
+    $Location    = Split-Path -path $FilePath
+    $FileName    = Split-Path -path $FilePath -Leaf
+    $TmpFilename = "$Location\tmp.$FileName"
+    $FileContent | Out-File -FilePath $TmpFilename -force -Encoding utf8BOM -NoNewline
 
     $CompareFiles = compare-object -ReferenceObject ( get-content -path $FilePath ) -DifferenceObject ( get-content -path $TmpFilename )
 
@@ -1375,10 +1658,18 @@ Function Update-HelpContent {
     return $res
 }
 Function Update-ModuleMetaData {
-    <#
+<#
+    .SYNOPSIS
+        Get function details
     .DESCRIPTION
         AST. Get function Attribute detail.
-    #>
+    .EXAMPLE
+        Get-FunctionDetails [-FilePath $FilePath]
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 02.11.20
+        VER     1
+#>
     [CmdletBinding()]
     param (
         [string] $FilePath,
@@ -1445,16 +1736,24 @@ Function Update-ModuleMetaData {
     return $Res
 }
 Function Get-ChangeStatus {
-    <#
+<#
+    .SYNOPSIS
+        Get function details
     .DESCRIPTION
         AST. Get function Attribute detail.
-    #>
+    .EXAMPLE
+        Get-FunctionDetails [-FilePath $FilePath]
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 02.11.20
+        VER     1
+#>
     [CmdletBinding()]
     param(
         [string] $FilePath
     )
 
-    $LastCommitInfo = Get-LastCommitInfo -FilePath $FilePath
+    $LastCommitInfo = Get-CommitInfo -FilePath $FilePath
 
     $Res = $True
     $Location       = Split-Path -path $FilePath
@@ -1481,10 +1780,18 @@ Function Get-ChangeStatus {
     Return $PSO
 }
 Function Set-ChangeStatus {
-    <#
+<#
+    .SYNOPSIS
+        Get function details
     .DESCRIPTION
         AST. Get function Attribute detail.
-    #>
+    .EXAMPLE
+        Get-FunctionDetails [-FilePath $FilePath]
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 02.11.20
+        VER     1
+#>
     [CmdletBinding()]
     param(
         [string] $FilePath,
@@ -1493,23 +1800,29 @@ Function Set-ChangeStatus {
 
     $Res = $True
 
-    $LastCommitInfo = Get-LastCommitInfo -FilePath $FilePath
+    $LastCommitInfo = Get-CommitInfo -FilePath $FilePath
 
     $Location       = Split-Path -path $FilePath
     $ChangeFilePath = "$Location\$($Global:gsTESTSFolder)\VersionAppliance.csv"
     $NewData = @()
     if ( test-path -path $ChangeFilePath ){
-        $Data                    =  Import-Csv -path $ChangeFilePath
+        $Data  =  Import-Csv -path $ChangeFilePath
         $Exist = $Data | Where-Object { $_.hash -eq $LastCommitInfo.hash }
         if ( $Exist ){
-            $Exist | Add-Member -NotePropertyName $Type -NotePropertyValue $true
-            $NewData += $Data
+            if ( $Exist.psobject.properties.name -contains "ModuleMetaData" ){
+                $Exist.ModuleMetaData = $True
+                $NewData += $Data
+            }
+            Else {
+                $Exist | Add-Member -NotePropertyName $Type -NotePropertyValue $true
+                $NewData += $Data
+            }
         }
         Else {
             $LastCommitInfo.Modified =  $LastCommitInfo.Modified -join "; "
             $LastCommitInfo | Add-Member -NotePropertyName $Type -NotePropertyValue $true
-            $NewData                 += $Data
-            $NewData                 += $LastCommitInfo
+            $NewData += $Data
+            $NewData += $LastCommitInfo
         }
 
         $NewData | Export-Csv -path $ChangeFilePath
@@ -1521,10 +1834,18 @@ Function Set-ChangeStatus {
     }
 }
 Function Update-EmptySettings {
-    <#
+<#
+    .SYNOPSIS
+        Get function details
     .DESCRIPTION
         AST. Get function Attribute detail.
-    #>
+    .EXAMPLE
+        Get-FunctionDetails [-FilePath $FilePath]
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 02.11.20
+        VER     1
+#>
     [CmdletBinding()]
     param(
         [string] $FilePath,
@@ -1544,8 +1865,16 @@ Function Update-EmptySettings {
 }
 Function Get-ModuleHelpContent {
 <#
+    .SYNOPSIS
+        Get module help content
     .DESCRIPTION
         AST. Get function Attribute detail.
+    .EXAMPLE
+        Get-ModuleHelpContent [-FilePath $FilePath]
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 02.11.20
+        VER     1
 #>
     [CmdletBinding()]
     param (
@@ -1556,13 +1885,21 @@ Function Get-ModuleHelpContent {
 
     $Ast = [System.Management.Automation.Language.Parser]::ParseFile( $FilePath, [ref] $VarToken , [ref] $VarError )
     $HelpContent = $Ast.GetHelpContent()
-    
+
     return $HelpContent
 }
 Function Get-CommentRegions {
 <#
+    .SYNOPSIS
+        Get module help content
     .DESCRIPTION
         AST. Get function Attribute detail.
+    .EXAMPLE
+        Get-ModuleHelpContent [-FilePath $FilePath]
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 02.11.20
+        VER     1
 #>
     [CmdletBinding()]
     param (
@@ -1595,23 +1932,66 @@ Function Get-CommentRegions {
 }
 Function Get-PesterTemplate {
 <#
+    .SYNOPSIS
+        Get module help content
     .DESCRIPTION
         AST. Get function Attribute detail.
+    .EXAMPLE
+        Get-ModuleHelpContent [-FilePath $FilePath]
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 02.11.20
+        VER     1
 #>
     [CmdletBinding()]
     param (
-        [string] $FilePath
+        [string] $FilePath,
+        [string] $Author = "AlexK",
+        [string] $name
     )
+
+    $FileExt = Split-Path -Path $FilePath -Extension
+    if ( $FileExt -eq ".psm1"  ) {
+        $Module = Split-Path -Path $FilePath -LeafBase
+    }
 
     $FunctionDetails = Get-FunctionDetails -FilePath $FilePath
     $FunctionRegions = Get-CommentRegions  -FilePath $FilePath
 
     $Lines = @()
 
+    $TemplateCommentHelp = @"
+<#
+    .SYNOPSIS
+        Pester test for [$FilePath].
+    .DESCRIPTION
+        Generated by AlexKBuildTools\Get-PesterTemplate ( https://github.com/Alex-0293/AlexKBuildTools )
+    .NOTES
+        NAME    $name
+        VER     1
+        AUTHOR  Alexk
+        CREATED $(get-date -Format "dd.MM.yy")
+#>
+
+
+"@
+    $Lines += $TemplateCommentHelp
+    $Lines += @"
+clear-host
+Import-Module -Name "Pester"
+$(if ( $Module ){ Import-module -Name `"$Module`" -force })
+`$TestedFilePath = `"$FilePath`"
+
+`$PesterPreference                  = [PesterConfiguration]::Default
+`$PesterPreference.Output.Verbosity = "Detailed"
+`$PesterPreference.Run.Exit         = `$true
+
+"@
+
     foreach ( $Function in $FunctionDetails ){
         if ( $Function.EndLineNumber -lt $FunctionRegions[0].StartLine ) {
-            $Lines += "Describe `"[$($Function.FunctionName)]`" {"
-            $Lines += "    It  `"`" {"
+            $Lines += "Describe `"[$($Function.FunctionName)]`" -skip {"
+            $Lines += "    It  `"name`" {"
             $Lines += ""
             $Lines += "    }"
             $Lines += "}"
@@ -1620,11 +2000,11 @@ Function Get-PesterTemplate {
     }
 
     foreach ( $region in $FunctionRegions ) {
-        $Lines += "Context `"$($region.content.replace('#region',''))`" {"
+        $Lines += "Context `"$($region.content.replace('#region','').trim())`" {"
         foreach ( $Function in $FunctionDetails ){
             if ( ( $Function.StartLineNumber -gt $region.StartLine ) -and ( $Function.EndLineNumber -lt $region.EndLine ) ) {
-                $Lines += "    Describe `"[$($Function.FunctionName)]`" {"
-                $Lines += "        It  `"`" {"
+                $Lines += "    Describe `"[$($Function.FunctionName)]`" -skip {"
+                $Lines += "        It  `"name`" {"
                 $Lines += ""
                 $Lines += "        }"
                 $Lines += "    }"
@@ -1637,8 +2017,8 @@ Function Get-PesterTemplate {
 
     foreach ( $Function in $FunctionDetails ){
         if ( $Function.StartLineNumber -gt $FunctionRegions[( $FunctionRegions.count - 1 )].EndLine ) {
-            $Lines += "Describe `"[$($Function.FunctionName)]`" {"
-            $Lines += "    It  `"`" {"
+            $Lines += "Describe `"[$($Function.FunctionName)]`" -skip {"
+            $Lines += "    It  `"name`" {"
             $Lines += ""
             $Lines += "    }"
             $Lines += "}"
@@ -1648,6 +2028,214 @@ Function Get-PesterTemplate {
 
     Return $Lines
 }
+Function Get-GitCurrentStatus {
+<#
+    .SYNOPSIS
+        Get git current status
+    .DESCRIPTION
+        AST. Get function Attribute detail.
+    .EXAMPLE
+        Get-GitCurrentStatus [-FilePath $FilePath]
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 02.11.20
+        VER     1
+#>
+    [CmdletBinding()]
+    param (
+        [string] $FilePath
+    )
+
+    $Location = Split-Path -path $FilePath -Parent
+    Set-Location $Location
+
+    $GitStatus = ( & git status )
+    $section   = $null
+
+    foreach ( $line in $GitStatus ){
+        switch -wildcard ($line) {
+            "On branch*" {
+                $section  = "OnBranch"
+                $OnBranch = @()
+            }
+            "Changes not staged for commit:*" {
+                $section   = "NotStaged"
+                $NotStaged = @()
+            }
+            "Untracked files*" {
+                $section        = "UntrackedFiles"
+                $UntrackedFiles = @()
+            }
+            Default {}
+        }
+
+        switch ( $section ) {
+            "OnBranch" {
+                $OnBranch += ( $line.trim() )
+            }
+            "NotStaged" {
+                $NotStaged += ( $line.trim() )
+            }
+            "UntrackedFiles" {
+                $UntrackedFiles += ( $line.trim() )
+            }
+            Default {}
+        }
+    }
+
+    if ( $OnBranch ) {
+        if ( $OnBranch[1].split("'")[0].contains("up to date") ){
+            $Branch   = $OnBranch[1].split("'")[1]
+            $UpToDate = $true
+        }
+        Else {
+            $Branch   = $OnBranch[1].split("'")[1]
+            $UpToDate = $false
+        }
+    }
+    if ( $NotStaged ){
+        $NotStagedFiles =  $NotStaged[3..($NotStaged.count-2)]
+    }
+    if ( $UntrackedFiles ){
+        $Untracked =  $UntrackedFiles[2..($UntrackedFiles.count-3)]
+    }
+
+    $PSO = [PSCustomObject]@{
+        Branch         = $Branch
+        UpToDate       = $UpToDate
+        NotStagedFiles = $NotStagedFiles
+        Untracked      = $Untracked
+    }
+
+    return $PSO
+}
+Function Invoke-GitCommit {
+<#
+    .SYNOPSIS
+        Get git current status
+    .DESCRIPTION
+        AST. Get function Attribute detail.
+    .EXAMPLE
+        Get-GitCurrentStatus [-FilePath $FilePath]
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 02.11.20
+        VER     1
+#>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true, Position = 0, HelpMessage = "Script file path." )]
+        [string] $FilePath,
+        [Parameter(Mandatory = $false, Position = 1, HelpMessage = "Path to committed files." )]
+        [string[]] $CommitedFileList,
+        [Parameter(Mandatory = $true, Position = 2, HelpMessage = "Commit message." )]
+        [string] $CommitMessage,
+        [Parameter(Mandatory = $false, Position = 2, HelpMessage = "Push commit." )]
+        [switch] $Push,
+        [Parameter(Mandatory = $false, Position = 2, HelpMessage = "Return object." )]
+        [switch] $PassThru
+    )
+
+    $Location = Split-Path -path $FilePath -Parent
+    Set-Location $Location
+
+    if ( $CommitedFileList ){
+        $AddFiles         = $CommitedFileList -join ", "
+        $AddFilesToCommit = (& git.exe add $AddFiles)
+    }
+    Else {
+        $AddFilesToCommit = (& git.exe add . --verbose )
+    }
+
+    $Commit = (& git.exe commit -m $CommitMessage )
+
+    if ( $Commit ){
+        if ( !($Commit -like "*nothing to commit*") ){
+            if ( $Push ){
+                $PushMessage = (& git.exe push -u origin master --verbose)
+            }
+        }
+    }
+
+    if ( $PassThru ){
+        $PSO = [PSCustomObject]@{
+            AddFilesToCommit = $AddFilesToCommit
+            Commit           = $Commit
+            Push             = $PushMessage
+        }
+
+        return $PSO
+    }
+}
+Function Get-CommitLog {
+<#
+    .SYNOPSIS
+        Get git current status
+    .DESCRIPTION
+        AST. Get function Attribute detail.
+    .EXAMPLE
+        Get-GitCurrentStatus [-FilePath $FilePath]
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 02.11.20
+        VER     1
+#>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true, Position = 0, HelpMessage = "Script file path." )]
+        [string] $FilePath,
+        [Parameter(Mandatory = $false, Position = 1, HelpMessage = "Path to committed files." )]
+        [pscustomobject] $CommitPSO,
+        [string] $LogFileName,
+        [string] $LogPath = $Global:gsScriptLogFilePath,
+        [switch] $SaveLog
+    )
+
+    $Location = Split-Path -path $FilePath -Parent
+    $FileName = split-path -path $FilePath -LeafBase
+    $Log = @()
+
+    $Log += "Commit log for [$FileName]"
+    $Log += "=========================="
+
+    if ( $CommitPSO.AddFilesToCommit ) {
+        $Log += ""
+        $Log += "Add files to commit:"
+        foreach ( $line in $CommitPSO.AddFilesToCommit ){
+            $Log += "    $line"
+        }
+    }
+
+    if ( $CommitPSO.Commit ) {
+        $Log += ""
+        $Log += "Commit:"
+        foreach ( $line in $CommitPSO.Commit ){
+            $Log += "    $line"
+        }
+    }
+
+    if ( $CommitPSO.PushMessage ) {
+        $Log += ""
+        $Log += "Push:"
+        foreach ( $line in $CommitPSO.PushMessage ){
+            $Log += "    $line"
+        }
+    }
+
+    if ( $SaveLog ){
+        if ( !$LogFileName ){
+            $LogPathParent = Split-Path -path $LogPath -Parent
+            $LogFileName   = "$LogPathParent\Commit.log"
+        }
+        if ( $Log ){
+            $Log | Out-File -FilePath $LogFileName -force
+            Add-ToLog -Message "Saved log file [$LogFileName]" -logFilePath $LogPath -Display -Status "info"
+        }
+    }
+
+    return $true
+}
 
 
-Export-ModuleMember -Function Get-FunctionDetails, Get-FunctionChanges, Get-LastCommitInfo, Get-ChangeLog, Get-ModuleVersion, Start-FunctionTest, Remove-RightSpace, Start-ScriptAnalyzer, Update-HelpContent, Update-ModuleMetaData, Get-ChangeStatus, Set-ChangeStatus, Update-EmptySettings, Get-ModuleHelpContent, Get-PesterTemplate, Get-CommentRegions, Set-PSModuleManifest
+
+Export-ModuleMember -Function Get-FunctionDetails, Get-FunctionChanges, Get-CommitInfo, Get-ChangeLog, Get-ModuleVersion, Start-FunctionTest, Remove-RightSpace, Start-ScriptAnalyzer, Update-HelpContent, Update-ModuleMetaData, Get-ChangeStatus, Set-ChangeStatus, Update-EmptySettings, Get-ModuleHelpContent, Get-PesterTemplate, Get-CommentRegions, Set-PSModuleManifest, Get-GitCurrentStatus, Invoke-GitCommit, Get-CommitLog
