@@ -1,68 +1,66 @@
-"ParentFunctionName";"FunctionName";"Description"
-"";"New-ModuleMetaData";"Function return Array of ACL for all objects in the Path
-Use Type to filter item. ""file"", ""folder"", ""all""
+ParentFunctionName;FunctionName;Description
+;New-ModuleMetaData;Create new module metadata file (*.psd1).
+;Get-FunctionDetails;"Get AST function detail.
 "
-"";"Get-FunctionDetails";"AST. Get function Attribute detail.
+Get-FunctionDetails;Get-AttributeDetails;"Internal. Get function AST attribute detail.
 "
-"Get-FunctionDetails";"Get-AttributeDetails";"AST. Get function Attribute detail.
+Get-FunctionDetails;Get-ParameterDetails;"Internal. Get function AST parameter detail.
 "
-"Get-FunctionDetails";"Get-ParameterDetails";"AST. Get function Attribute detail.
+Get-FunctionDetails;Get-HelpContent;"Internal. Get function AST help content.
 "
-"Get-FunctionDetails";"Get-HelpContent";"AST. Get function Attribute detail.
+;Get-FunctionChanges;"Get changes between two functions.
 "
-"";"Get-FunctionChanges";"AST. Get function Attribute detail.
+Get-FunctionChanges;Test-Changes;Internal. Test function parameter and attribute changes.
+;Get-CommitInfo;"Get last git commit info.
 "
-"Get-FunctionChanges";"Test-Changes";
-"";"Get-CommitInfo";"AST. Get function Attribute detail.
+;Get-ChangeLog;"Get changes between two functions and save to log file.
 "
-"";"Get-ChangeLog";"AST. Get function Attribute detail.
+Get-ChangeLog;Invoke-DataFormat;"Internal. Format data.
 "
-"Get-ChangeLog";"Invoke-DataFormat";"AST. Get function Attribute detail.
+;Get-ModuleVersion;"Get script or module version.
 "
-"";"Get-ModuleVersion";"AST. Get function Attribute detail.
+;Start-FunctionTest;"Start Pester function test.
 "
-"";"Start-FunctionTest";"AST. Get function Attribute detail.
+;Remove-RightSpace;"Remove trailing spaces from file.
 "
-"";"Remove-RightSpace";"AST. Get function Attribute detail.
+;Start-ScriptAnalyzer;"Start PSScriptAnalyzer.
 "
-"";"Start-ScriptAnalyzer";"AST. Get function Attribute detail.
+;Update-HelpContent;"Update module or script help content.
 "
-"";"Update-HelpContent";"AST. Get function Attribute detail.
+Update-HelpContent;Get-NewExamples;"Internal. Generate new examples from AST.
 "
-"Update-HelpContent";"Get-NewExamples";"AST. Get function Attribute detail.
+Update-HelpContent;Get-NewDescription;"Internal. Generate new description from AST.
 "
-"Update-HelpContent";"Get-NewDescription";"AST. Get function Attribute detail.
+Update-HelpContent;Get-NewNotes;"Internal. Generate new notes from AST.
 "
-"Update-HelpContent";"Get-NewNotes";"AST. Get function Attribute detail.
+Update-HelpContent;Get-NewSynopsis;"Internal. Generate new synopsis from AST.
 "
-"Update-HelpContent";"Get-NewSynopsis";"AST. Get function Attribute detail.
+Update-HelpContent;Get-NewComponent;"Internal. Generate new component from AST.
 "
-"Update-HelpContent";"Get-NewComponent";"AST. Get function Attribute detail.
+Update-HelpContent;Get-UpdatedHelpContent;"Internal. Generate new help content.
 "
-"Update-HelpContent";"Get-UpdatedHelpContent";"AST. Get function Attribute detail.
+Update-HelpContent;Get-CurrentHelpContent;"Internal. Get help content from file.
 "
-"Update-HelpContent";"Get-CurrentHelpContent";"AST. Get function Attribute detail.
+;Update-ModuleMetaData;"Update module metadata file (*.psd1).
 "
-"";"Update-ModuleMetaData";"AST. Get function Attribute detail.
+;Get-ChangeStatus;"Get commit version appliance status.
 "
-"";"Get-ChangeStatus";"AST. Get function Attribute detail.
+;Set-ChangeStatus;"Set commit version appliance status.
 "
-"";"Set-ChangeStatus";"AST. Get function Attribute detail.
+;Update-EmptySettings;"Generate new empty setting files.
 "
-"";"Update-EmptySettings";"AST. Get function Attribute detail.
+;Get-ModuleHelpContent;"Get module or script help content.
 "
-"";"Get-ModuleHelpContent";"AST. Get function Attribute detail.
+;Get-CommentRegions;"Get comment regions from AST.
 "
-"";"Get-CommentRegions";"AST. Get function Attribute detail.
+;Get-PesterTemplate;"Generate pester test template.
 "
-"";"Get-PesterTemplate";"AST. Get function Attribute detail.
+;Get-ProjectGitStatus;"Get git project status.
 "
-"";"Get-GitCurrentStatus";"AST. Get function Attribute detail.
+;Invoke-GitCommit;"Invoke git commit.
 "
-"";"Invoke-GitCommit";"AST. Get function Attribute detail.
+;Get-CommitLog;"Get last git commit log details.
 "
-"";"Get-CommitLog";"AST. Get function Attribute detail.
+;Get-ProjectOrigin;"Get git project origin.
 "
-"";"Get-ProjectOrigin";"AST. Get function Attribute detail.
-"
-"";"Open-InVscode";
+;Open-InVscode;Open files in VSCode.

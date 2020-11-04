@@ -10,7 +10,7 @@
         AUTHOR  Alexk
         CREATED 29.10.20
         MOD     04.11.20
-        VER     5
+        VER     6
 #>
 
 
@@ -19,8 +19,7 @@ Function New-ModuleMetaData {
     .SYNOPSIS
         New module meta data
     .DESCRIPTION
-        Function return Array of ACL for all objects in the Path
-        Use Type to filter item. "file", "folder", "all"
+        Create new module metadata file (*.psd1).
     .EXAMPLE
         New-ModuleMetaData -FilePath $FilePath -AuthorName $AuthorName -AuthorEmail $AuthorEmail -Description $Description -License $License [-RequiredModules $RequiredModules] [-Tags $Tags] [-LogPath $LogPath=$Global:gsScriptLogFilePath] [-PassThru $PassThru]
     .NOTES
@@ -141,7 +140,7 @@ function Get-FunctionDetails {
     .SYNOPSIS
         Get function details
     .DESCRIPTION
-        AST. Get function Attribute detail.
+        Get AST function detail.
     .EXAMPLE
         Get-FunctionDetails -FilePath $FilePath
     .NOTES
@@ -162,7 +161,7 @@ function Get-FunctionDetails {
         .SYNOPSIS
             Get attribute details
         .DESCRIPTION
-            AST. Get function Attribute detail.
+            Internal. Get function AST attribute detail.
         .EXAMPLE
             Get-AttributeDetails [-Attributes $Attributes]
         .NOTES
@@ -237,7 +236,7 @@ function Get-FunctionDetails {
         .SYNOPSIS
             Get parameter details
         .DESCRIPTION
-            AST. Get function Attribute detail.
+            Internal. Get function AST parameter detail.
         .EXAMPLE
             Get-ParameterDetails [-Parameters $Parameters]
         .NOTES
@@ -290,7 +289,7 @@ function Get-FunctionDetails {
         .SYNOPSIS
             Get help content
         .DESCRIPTION
-            AST. Get function Attribute detail.
+            Internal. Get function AST help content.
         .EXAMPLE
             Get-HelpContent [-Function $Function]
         .NOTES
@@ -363,7 +362,7 @@ Function Get-FunctionChanges {
     .SYNOPSIS
         Get function changes
     .DESCRIPTION
-        AST. Get function Attribute detail.
+        Get changes between two functions.
     .EXAMPLE
         Get-FunctionChanges -Functions $Functions -PrevFunctions $PrevFunctions
     .NOTES
@@ -386,6 +385,8 @@ Function Get-FunctionChanges {
     <#
         .SYNOPSIS
             Test changes
+        .DESCRIPTION
+            Internal. Test function parameter and attribute changes.
         .EXAMPLE
             Test-Changes -Function $Function -PrevFunction $PrevFunction
         .NOTES
@@ -603,7 +604,7 @@ function Get-CommitInfo {
     .SYNOPSIS
         Get commit info
     .DESCRIPTION
-        AST. Get function Attribute detail.
+        Get last git commit info.
     .EXAMPLE
         Get-CommitInfo -FilePath $FilePath
     .NOTES
@@ -691,7 +692,7 @@ function Get-ChangeLog {
     .SYNOPSIS
         Get change log
     .DESCRIPTION
-        AST. Get function Attribute detail.
+        Get changes between two functions and save to log file.
     .EXAMPLE
         Get-ChangeLog -FilePath $FilePath [-LogFileName $LogFileName] [-SaveLog $SaveLog] [-LogPath $LogPath=$Global:gsScriptLogFilePath]
     .NOTES
@@ -718,7 +719,7 @@ function Get-ChangeLog {
         .SYNOPSIS
             Invoke data format
         .DESCRIPTION
-            AST. Get function Attribute detail.
+            Internal. Format data.
         .EXAMPLE
             Invoke-DataFormat -Data $Data
         .NOTES
@@ -888,7 +889,7 @@ function Get-ModuleVersion {
     .SYNOPSIS
         Get module version
     .DESCRIPTION
-        AST. Get function Attribute detail.
+        Get script or module version.
     .EXAMPLE
         Get-ModuleVersion -FilePath $FilePath
     .NOTES
@@ -934,7 +935,7 @@ Function Start-FunctionTest {
     .SYNOPSIS
         Start function test
     .DESCRIPTION
-        AST. Get function Attribute detail.
+        Start Pester function test.
     .EXAMPLE
         Start-FunctionTest -FilePath $FilePath [-LogFileName $LogFileName] [-SaveLog $SaveLog] [-LogPath $LogPath=$Global:gsScriptLogFilePath]
     .NOTES
@@ -1116,7 +1117,7 @@ Function Remove-RightSpace {
     .SYNOPSIS
         Remove right space
     .DESCRIPTION
-        AST. Get function Attribute detail.
+        Remove trailing spaces from file.
     .EXAMPLE
         Remove-RightSpace -FilePath $FilePath [-LogPath $LogPath=$Global:gsScriptLogFilePath]
     .NOTES
@@ -1193,7 +1194,7 @@ Function Start-ScriptAnalyzer {
     .SYNOPSIS
         Start script analyzer
     .DESCRIPTION
-        AST. Get function Attribute detail.
+        Start PSScriptAnalyzer.
     .EXAMPLE
         Start-ScriptAnalyzer -FilePath $FilePath [-LogFileName $LogFileName] [-SaveLog $SaveLog] [-LogPath $LogPath=$Global:gsScriptLogFilePath]
     .NOTES
@@ -1278,14 +1279,14 @@ Function Update-HelpContent {
     .SYNOPSIS
         Update help content
     .DESCRIPTION
-        AST. Get function Attribute detail.
+        Update module or script help content.
     .EXAMPLE
         Update-HelpContent -FilePath $FilePath -Changes $Changes [-UpdateVersion $UpdateVersion] [-LogPath $LogPath=$Global:gsScriptLogFilePath]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
         MOD     04.11.20
-        VER     3
+        VER     4
 #>
     [OutputType([bool])]
     [CmdletBinding()]
@@ -1306,7 +1307,7 @@ Function Update-HelpContent {
         .SYNOPSIS
             Get new examples
         .DESCRIPTION
-            AST. Get function Attribute detail.
+            Internal. Generate new examples from AST.
         .EXAMPLE
             Get-NewExamples -Function $Function
         .NOTES
@@ -1395,13 +1396,14 @@ Function Update-HelpContent {
         .SYNOPSIS
             Get new description
         .DESCRIPTION
-            AST. Get function Attribute detail.
+            Internal. Generate new description from AST.
         .EXAMPLE
             Get-NewDescription -Function $Function [-FilePath $FilePath]
         .NOTES
             AUTHOR  Alexk
             CREATED 02.11.20
-            VER     1
+            MOD     04.11.20
+            VER     2
     #>
         [OutputType([string])]
         [CmdletBinding()]
@@ -1413,7 +1415,7 @@ Function Update-HelpContent {
 
         if ( $FilePath ) {
             $Location        = Split-Path -path $FilePath
-            $DescriptionPath = "$Location\$($Global:gsTESTSFolder)\NewFunctions.csv"
+            $DescriptionPath = "$Location\$($Global:gsTESTSFolder)\Functions.csv"
 
             if ( test-path -path $DescriptionPath ) {
                 $FuncArray = Import-Csv -Path $DescriptionPath -Delimiter ";"
@@ -1436,7 +1438,7 @@ Function Update-HelpContent {
         .SYNOPSIS
             Get new notes
         .DESCRIPTION
-            AST. Get function Attribute detail.
+            Internal. Generate new notes from AST.
         .EXAMPLE
             Get-NewNotes -Function $Function [-UpdateVersion $UpdateVersion] [-DefaultAuthor $DefaultAuthor="Alexk"]
         .NOTES
@@ -1587,7 +1589,7 @@ Function Update-HelpContent {
         .SYNOPSIS
             Get new synopsis
         .DESCRIPTION
-            AST. Get function Attribute detail.
+            Internal. Generate new synopsis from AST.
         .EXAMPLE
             Get-NewSynopsis -Function $Function [-UpdateVersion $UpdateVersion]
         .NOTES
@@ -1628,7 +1630,7 @@ Function Update-HelpContent {
         .SYNOPSIS
             Get new component
         .DESCRIPTION
-            AST. Get function Attribute detail.
+            Internal. Generate new component from AST.
         .EXAMPLE
             Get-NewComponent -Function $Function
         .NOTES
@@ -1660,7 +1662,7 @@ Function Update-HelpContent {
         .SYNOPSIS
             Get updated help content
         .DESCRIPTION
-            AST. Get function Attribute detail.
+            Internal. Generate new help content.
         .EXAMPLE
             Get-UpdatedHelpContent -Function $Function -FilePath $FilePath [-Role $Role] [-RemoteHelpRunspace $RemoteHelpRunspace] [-Parameters $Parameters] [-Notes $Notes] [-MamlHelpFile $MamlHelpFile] [-Links $Links] [-Inputs $Inputs] [-Functionality $Functionality] [-ForwardHelpTargetName $ForwardHelpTargetName] [-ForwardHelpCategory $ForwardHelpCategory] [-Examples $Examples] [-Description $Description] [-Component $Component] [-Synopsis $Synopsis] [-UpdateVersion $UpdateVersion]
         .NOTES
@@ -1786,7 +1788,7 @@ Function Update-HelpContent {
         .SYNOPSIS
             Get current help content
         .DESCRIPTION
-            AST. Get function Attribute detail.
+            Internal. Get help content from file.
         .EXAMPLE
             Get-CurrentHelpContent -Function $Function
         .NOTES
@@ -1831,7 +1833,9 @@ Function Update-HelpContent {
     if ( $FilePath ) {
         $Location        = Split-Path -path $FilePath
         $DescriptionPath = "$Location\$($Global:gsTESTSFolder)\functions.csv"
-        $Changes.FunctionList | Select-Object ParentFunctionName, FunctionName, Description | Export-Csv -path $DescriptionPath -Delimiter ";"
+        if ( !( test-path -path $DescriptionPath ) ){
+            $Changes.FunctionList | Select-Object ParentFunctionName, FunctionName, Description | Export-Csv -path $DescriptionPath -Delimiter ";"
+        }
 
         # Update module help content
         $EndLineNumber = ($Changes.FunctionList | Sort-Object StartLineNumber | Select-Object -First 1).StartLineNumber - 2
@@ -1977,7 +1981,7 @@ Function Update-ModuleMetaData {
     .SYNOPSIS
         Update module meta data
     .DESCRIPTION
-        AST. Get function Attribute detail.
+        Update module metadata file (*.psd1).
     .EXAMPLE
         Update-ModuleMetaData -FilePath $FilePath -Changes $Changes -CommitMessage $CommitMessage -AuthorName $AuthorName -AuthorEmail $AuthorEmail -ProjectStartYear $ProjectStartYear [-LogPath $LogPath=$Global:gsScriptLogFilePath]
     .NOTES
@@ -2065,7 +2069,7 @@ Function Get-ChangeStatus {
     .SYNOPSIS
         Get change status
     .DESCRIPTION
-        AST. Get function Attribute detail.
+        Get commit version appliance status.
     .EXAMPLE
         Get-ChangeStatus -FilePath $FilePath
     .NOTES
@@ -2112,7 +2116,7 @@ Function Set-ChangeStatus {
     .SYNOPSIS
         Set change status
     .DESCRIPTION
-        AST. Get function Attribute detail.
+        Set commit version appliance status.
     .EXAMPLE
         Set-ChangeStatus -FilePath $FilePath -Type $Type
     .NOTES
@@ -2170,7 +2174,7 @@ Function Update-EmptySettings {
     .SYNOPSIS
         Update empty settings
     .DESCRIPTION
-        AST. Get function Attribute detail.
+        Generate new empty setting files.
     .EXAMPLE
         Update-EmptySettings -FilePath $FilePath [-LogPath $LogPath=$Global:gsScriptLogFilePath]
     .NOTES
@@ -2204,7 +2208,7 @@ Function Get-ModuleHelpContent {
     .SYNOPSIS
         Get module help content
     .DESCRIPTION
-        AST. Get function Attribute detail.
+        Get module or script help content.
     .EXAMPLE
         Get-ModuleHelpContent -FilePath $FilePath
     .NOTES
@@ -2233,7 +2237,7 @@ Function Get-CommentRegions {
     .SYNOPSIS
         Get comment regions
     .DESCRIPTION
-        AST. Get function Attribute detail.
+        Get comment regions from AST.
     .EXAMPLE
         Get-CommentRegions -FilePath $FilePath
     .NOTES
@@ -2279,7 +2283,7 @@ Function Get-PesterTemplate {
     .SYNOPSIS
         Get pester template
     .DESCRIPTION
-        AST. Get function Attribute detail.
+        Generate pester test template.
     .EXAMPLE
         Get-PesterTemplate -FilePath $FilePath -Author $Author="AlexK"
     .NOTES
@@ -2375,14 +2379,14 @@ $(if ( $Module ){ Import-module -Name `"$Module`" -force })
 
     Return $Lines
 }
-Function Get-GitCurrentStatus {
+Function Get-ProjectGitStatus {
 <#
     .SYNOPSIS
         Get git current status
     .DESCRIPTION
-        AST. Get function Attribute detail.
+        Get git project status.
     .EXAMPLE
-        Get-GitCurrentStatus -FilePath $FilePath
+        Get-ProjectGitStatus -FilePath $FilePath
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
@@ -2464,7 +2468,7 @@ Function Invoke-GitCommit {
     .SYNOPSIS
         Invoke git commit
     .DESCRIPTION
-        AST. Get function Attribute detail.
+        Invoke git commit.
     .EXAMPLE
         Invoke-GitCommit -FilePath $FilePath -CommitMessage $CommitMessage [-CommitedFileList $CommitedFileList] [-Push $Push] [-PassThru $PassThru]
     .NOTES
@@ -2522,7 +2526,7 @@ Function Get-CommitLog {
     .SYNOPSIS
         Get commit log
     .DESCRIPTION
-        AST. Get function Attribute detail.
+        Get last git commit log details.
     .EXAMPLE
         Get-CommitLog -FilePath $FilePath [-CommitPSO $CommitPSO] [-LogFileName $LogFileName] [-LogPath $LogPath=$Global:gsScriptLogFilePath] [-SaveLog $SaveLog]
     .NOTES
@@ -2593,7 +2597,7 @@ Function Get-ProjectOrigin {
     .SYNOPSIS
         Get project origin
     .DESCRIPTION
-        AST. Get function Attribute detail.
+        Get git project origin.
     .EXAMPLE
         Get-ProjectOrigin -FilePath $FilePath
     .NOTES
@@ -2624,6 +2628,8 @@ Function Open-InVscode {
 <#
     .SYNOPSIS
         Open in vscode
+    .DESCRIPTION
+        Open files in VSCode.
     .EXAMPLE
         Parameter set: "Compare"
         Open-InVscode -FilePath $FilePath -FilePath1 $FilePath1 [-ReuseOpenWindow $ReuseOpenWindow] [-Compare $Compare] [-PassThru $PassThru]
@@ -2668,4 +2674,4 @@ Function Open-InVscode {
 }
 
 
-Export-ModuleMember -Function Get-FunctionDetails, Get-FunctionChanges, Get-CommitInfo, Get-ChangeLog, Get-ModuleVersion, Start-FunctionTest, Remove-RightSpace, Start-ScriptAnalyzer, Update-HelpContent, Update-ModuleMetaData, Get-ChangeStatus, Set-ChangeStatus, Update-EmptySettings, Get-ModuleHelpContent, Get-PesterTemplate, Get-CommentRegions, New-ModuleMetaData, Get-GitCurrentStatus, Invoke-GitCommit, Get-CommitLog, Get-ProjectOrigin, Open-InVscode
+Export-ModuleMember -Function Get-FunctionDetails, Get-FunctionChanges, Get-CommitInfo, Get-ChangeLog, Get-ModuleVersion, Start-FunctionTest, Remove-RightSpace, Start-ScriptAnalyzer, Update-HelpContent, Update-ModuleMetaData, Get-ChangeStatus, Set-ChangeStatus, Update-EmptySettings, Get-ModuleHelpContent, Get-PesterTemplate, Get-CommentRegions, New-ModuleMetaData, Get-ProjectGitStatus, Invoke-GitCommit, Get-CommitLog, Get-ProjectOrigin, Open-InVscode
