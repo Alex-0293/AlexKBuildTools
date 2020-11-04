@@ -1,0 +1,58 @@
+04.11.2020 13:08:11 Starting [PreCommit] sequence.
+04.11.2020 13:08:11 Start creating empty setting file for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1]
+04.11.2020 13:08:11 Finish creating empty setting file for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1]
+04.11.2020 13:08:11 Starting linter [PSScriptAnalyzer] for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1].
+04.11.2020 13:08:12 Finish linter [PSScriptAnalyzer] for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1].
+04.11.2020 13:08:12 Saved log file [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\TESTS\LOGS\04.11.20 13-08-11\PSAnalyzer.log]
+04.11.2020 13:08:12 Getting change log for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1] and previous version [Mon Nov 2 22:23:47 2020 +0300] with commit message [Test commit].
+04.11.2020 13:08:17 Got change log.
+04.11.2020 13:08:17 Saved log file [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\TESTS\LOGS\04.11.20 13-08-11\Changes.log]
+04.11.2020 13:08:18 Starting update help content for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1]
+04.11.2020 13:09:00 Found multiple [4] find [    <#
+        .SYNOPSIS
+            Get attribute details
+        .DESCRIPTION
+            AST. Get function Attribute detail.
+        .EXAMPLE
+            Get-AttributeDetails [-Attributes $Attributes]
+        .NOTES
+            AUTHOR  Alexk
+            CREATED 02.11.20
+            VER     1
+    #>]!
+04.11.2020 13:13:28 Found multiple [4] find [    <#
+        .SYNOPSIS
+            Get attribute details
+        .DESCRIPTION
+            AST. Get function Attribute detail.
+        .EXAMPLE
+            Get-AttributeDetails [-Attributes $Attributes]
+        .NOTES
+            AUTHOR  Alexk
+            CREATED 02.11.20
+            VER     1
+    #>]!
+04.11.2020 13:13:28 Found multiple [4] find [    <#
+        .SYNOPSIS
+            Get attribute details
+        .DESCRIPTION
+            AST. Get function Attribute detail.
+        .EXAMPLE
+            Get-AttributeDetails [-Attributes $Attributes]
+        .NOTES
+            AUTHOR  Alexk
+            CREATED 02.11.20
+            VER     1
+    #>]!
+04.11.2020 13:13:29 Found multiple [4] find [    <#
+        .SYNOPSIS
+            Get attribute details
+        .DESCRIPTION
+            AST. Get function Attribute detail.
+        .EXAMPLE
+            Get-AttributeDetails [-Attributes $Attributes]
+        .NOTES
+            AUTHOR  Alexk
+            CREATED 02.11.20
+            VER     1
+    #>]!

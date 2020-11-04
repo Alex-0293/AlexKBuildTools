@@ -1,0 +1,19 @@
+Changes 03.11.20 11:03:47
+================
+
+Changed functions:
+   Function: Update-HelpContent
+       Line difference [34]
+   Function: Update-HelpContent\Get-UpdatedHelpContent
+       Line difference [3]
+   Function: Update-ModuleMetaData
+       Line difference [1]
+   Function: Get-ModuleHelpContent
+       Line difference [3]
+       - Changed parameters
+                [string] $FilePath ( Mandatory [->$true], Position [->0], HelpMessage [->"Full path to module file."] )
+
+   Function: Get-CommentRegions
+       Line difference [1]
+   Function: Get-PesterTemplate
+       Line difference [1]

@@ -1,0 +1,15 @@
+Changes 03.11.20 10:46:45
+================
+
+Changed functions:
+   Function: Update-HelpContent
+       Line difference [34]
+   Function: Update-HelpContent\Get-UpdatedHelpContent
+       Line difference [3]
+   Function: Update-ModuleMetaData
+       Line difference [1]
+   Function: Get-ModuleHelpContent
+       Line difference [2]
+       - Changed parameters
+                [string] $FilePath ( Mandatory [->$true], Position [->0], HelpMessage [->"Full path to module file."] )
+

@@ -1,0 +1,14 @@
+04.11.2020 12:27:14 Starting [PreCommit] sequence.
+04.11.2020 12:27:14 Start creating empty setting file for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1]
+04.11.2020 12:27:14 Finish creating empty setting file for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1]
+04.11.2020 12:27:14 Starting linter [PSScriptAnalyzer] for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1].
+04.11.2020 12:27:14 Finish linter [PSScriptAnalyzer] for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1].
+04.11.2020 12:27:14 Saved log file [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\TESTS\LOGS\04.11.20 12-27-14\PSAnalyzer.log]
+04.11.2020 12:27:15 Getting change log for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1] and previous version [Mon Nov 2 22:23:47 2020 +0300] with commit message [Test commit].
+04.11.2020 12:27:18 Got change log.
+04.11.2020 12:27:18 Saved log file [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\TESTS\LOGS\04.11.20 12-27-14\Changes.log]
+04.11.2020 12:27:19 Starting update help content for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1]
+04.11.2020 12:28:53 Updated help content for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1]
+04.11.2020 12:28:53 Start removing right spaces for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1]
+04.11.2020 12:28:54 Nothing to remove for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1]
+04.11.2020 12:28:54 Starting module [AlexkBuildTools] metadata update.

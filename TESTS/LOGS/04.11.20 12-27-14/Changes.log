@@ -1,0 +1,45 @@
+Changes 04.11.20 12:27:18
+================
+
+Changed functions:
+   Function: Get-FunctionDetails
+       Line difference [-2]
+   Function: Get-FunctionChanges
+       Line difference [-2]
+   Function: Get-CommitInfo
+       Line difference [-2]
+   Function: Get-ChangeLog
+       Line difference [-2]
+   Function: Get-ModuleVersion
+       Line difference [-2]
+   Function: Start-FunctionTest
+       Line difference [-2]
+   Function: Remove-RightSpace
+       Line difference [-2]
+   Function: Start-ScriptAnalyzer
+       Line difference [-2]
+   Function: Update-HelpContent
+       Line difference [32]
+   Function: Update-HelpContent\Get-UpdatedHelpContent
+       Line difference [3]
+   Function: Update-ModuleMetaData
+       Line difference [-1]
+   Function: Get-ChangeStatus
+       Line difference [-2]
+   Function: Set-ChangeStatus
+       Line difference [-2]
+   Function: Update-EmptySettings
+       Line difference [-2]
+   Function: Get-ModuleHelpContent
+       Line difference [1]
+       - Changed parameters
+                [string] $FilePath ( Mandatory [->$true], Position [->0], HelpMessage [->"Full path to module file."] )
+
+   Function: Get-CommentRegions
+       Line difference [-1]
+   Function: Get-PesterTemplate
+       Line difference [-1]
+   Function: Invoke-GitCommit
+       Line difference [-2]
+   Function: Get-CommitLog
+       Line difference [-2]

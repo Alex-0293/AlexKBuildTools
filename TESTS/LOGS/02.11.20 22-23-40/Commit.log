@@ -1,0 +1,33 @@
+Commit log for [AlexkBuildTools]
+==========================
+
+Add files to commit:
+    add 'AlexkBuildTools.psm1'
+    add 'TESTS/LOGS/02.11.20 22-17-17/PSAnalyzer.log'
+    add 'TESTS/LOGS/02.11.20 22-17-17/Test.log'
+    add 'TESTS/LOGS/02.11.20 22-18-04/PSAnalyzer.log'
+    add 'TESTS/LOGS/02.11.20 22-18-04/Test.log'
+    add 'TESTS/LOGS/02.11.20 22-19-30/Changes.log'
+    add 'TESTS/LOGS/02.11.20 22-19-30/PSAnalyzer.log'
+    add 'TESTS/LOGS/02.11.20 22-19-30/Test.log'
+    add 'TESTS/LOGS/02.11.20 22-23-40/Changes.log'
+    add 'TESTS/LOGS/02.11.20 22-23-40/PSAnalyzer.log'
+    add 'TESTS/LOGS/02.11.20 22-23-40/Test.log'
+    add 'TESTS/VersionAppliance.csv'
+    add 'TESTS/functions.csv'
+
+Commit:
+    [master 49c4a9f] Test commit
+     13 files changed, 1215 insertions(+), 155 deletions(-)
+     create mode 100644 TESTS/LOGS/02.11.20 22-17-17/PSAnalyzer.log
+     create mode 100644 TESTS/LOGS/02.11.20 22-17-17/Test.log
+     create mode 100644 TESTS/LOGS/02.11.20 22-18-04/PSAnalyzer.log
+     create mode 100644 TESTS/LOGS/02.11.20 22-18-04/Test.log
+     create mode 100644 TESTS/LOGS/02.11.20 22-19-30/Changes.log
+     create mode 100644 TESTS/LOGS/02.11.20 22-19-30/PSAnalyzer.log
+     create mode 100644 TESTS/LOGS/02.11.20 22-19-30/Test.log
+     create mode 100644 TESTS/LOGS/02.11.20 22-23-40/Changes.log
+     create mode 100644 TESTS/LOGS/02.11.20 22-23-40/PSAnalyzer.log
+     create mode 100644 TESTS/LOGS/02.11.20 22-23-40/Test.log
+     create mode 100644 TESTS/VersionAppliance.csv
+     create mode 100644 TESTS/functions.csv

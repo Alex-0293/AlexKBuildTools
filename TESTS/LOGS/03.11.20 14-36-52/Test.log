@@ -1,0 +1,10 @@
+03.11.2020 14:36:52 Starting [PreCommit] sequence.
+03.11.2020 14:36:52 Start creating empty setting file for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1]
+03.11.2020 14:36:52 Finish creating empty setting file for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1]
+03.11.2020 14:36:52 Starting linter [PSScriptAnalyzer] for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1].
+03.11.2020 14:36:54 Finish linter [PSScriptAnalyzer] for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1].
+03.11.2020 14:36:54 Saved log file [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\TESTS\LOGS\03.11.20 14-36-52\PSAnalyzer.log]
+03.11.2020 14:36:54 Test file [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\TESTS\AlexkBuildTools.tests.ps1] not found!
+03.11.2020 14:36:54 Getting change log for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1] and previous version [Mon Nov 2 22:23:47 2020 +0300] with commit message [Test commit].
+03.11.2020 14:36:59 Got change log.
+03.11.2020 14:36:59 Saved log file [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\TESTS\LOGS\03.11.20 14-36-52\Changes.log]

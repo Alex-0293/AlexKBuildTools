@@ -4,53 +4,138 @@
     .DESCRIPTION
         This module contains functions to service powershell build process. Linter, functional test runner, script updater, comment base help generator, function change log generator and etc.
         Use inside AlexkFramework.
+    .COMPONENT
+        AlexKUtils
     .NOTES
         AUTHOR  Alexk
         CREATED 29.10.20
-        MOD     02.11.20
-        VER     2
+        MOD     03.11.20
+        VER     3
 #>
 
 
-Function Set-PSModuleManifest {
+Function New-ModuleMetaData {
 <#
     .SYNOPSIS
-        Set PS module manifest
+        New module meta data
     .DESCRIPTION
         Function return Array of ACL for all objects in the Path
         Use Type to filter item. "file", "folder", "all"
     .EXAMPLE
-        Set-PSModuleManifest -ModulePath $ModulePath -Author $Author -ModuleVersion $ModuleVersion -RootModule $RootModule -ExportedFunctions $ExportedFunctions
+        New-ModuleMetaData -FilePath $FilePath -AuthorName $AuthorName -AuthorEmail $AuthorEmail -Description $Description -License $License [-RequiredModules $RequiredModules] [-Tags $Tags] [-LogPath $LogPath=$Global:gsScriptLogFilePath] [-PassThru $PassThru]
     .NOTES
         AUTHOR  Alexk
         CREATED 08.04.20
         VER     1
 #>
+        [OutputType([bool])]
         [CmdletBinding()]
         Param (
             [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Full path to module file." )]
             [ValidateNotNullOrEmpty()]
-            [string] $ModulePath,
+            [string] $FilePath,
             [Parameter( Mandatory = $true, Position = 1, HelpMessage = "Module author." )]
             [ValidateNotNullOrEmpty()]
-            [string] $Author,
-            [Parameter( Mandatory = $true, Position = 2, HelpMessage = "Module version." )]
+            [string] $AuthorName,
+            [Parameter( Mandatory = $true, Position = 2, HelpMessage = "Module author email." )]
             [ValidateNotNullOrEmpty()]
-            [string] $ModuleVersion,
-            [Parameter( Mandatory = $true, Position = 3, HelpMessage = "Root module file name." )]
+            [string] $AuthorEmail,
+            [Parameter( Mandatory = $true, Position = 3, HelpMessage = "Module description." )]
             [ValidateNotNullOrEmpty()]
-            [string] $RootModule ,
-            [Parameter( Mandatory = $true, Position = 4, HelpMessage = "Exported functions array." )]
-            [ValidateNotNullOrEmpty()]
-            [array] $ExportedFunctions
+            [string] $Description,
+            [Parameter( Mandatory = $true, Position = 4, HelpMessage = "Module license." )]
+            [ValidateSet("Apache 2.0")]
+            [string] $License,
+            [Parameter( Mandatory = $false, Position = 5, HelpMessage = "Exported functions array." )]
+            [array] $RequiredModules,
+            [Parameter( Mandatory = $false, Position = 6, HelpMessage = "Tags." )]
+            [array] $Tags,
+            [Parameter( Mandatory = $false, Position = 7, HelpMessage = "Log file path." )]
+            [string] $LogPath = $Global:gsScriptLogFilePath,
+            [Parameter( Mandatory = $false, Position = 8, HelpMessage = "Return object." )]
+            [switch] $PassThru
         )
 
-        $PowerShellVersion = $PSVersionTable.PSVersion
-        $CLRVersion = $PSVersionTable.CLRVersion
-        $DotNetFrameworkVersion = $PSVersionTable.DotNetFrameworkVersion
+        $res = $false
 
-        New-ModuleManifest -Path $ModulePath -ModuleVersion $ModuleVersion  -Author $Author -PowerShellVersion $PowerShellVersion -ClrVersion $CLRVersion  -DotNetFrameworkVersion $DotNetFrameworkVersion -FunctionsToExport $ExportedFunctions -RootModule $RootModule
-    }
+        $Location     = Split-Path -path $FilePath
+        $BaseFileName = Split-Path -path $FilePath -LeafBase
+
+        if ( !(Get-ChildItem -path $Location -File -Filter "*.psd1") ){
+            if ( $FileExt -eq ".psm1" ) {
+                import-module -name $BaseFileName -force
+                $Module = get-module -name $BaseFileName
+            }
+            if ( $Module ) {
+                Add-ToLog -Message "Starting module [$($Module.name)] metadata creating."  -logFilePath $LogPath -Display -Status "info"
+
+                switch ( $license ) {
+                    "Apache 2.0" {
+                        $Copyright = "Copyright (c) $AuthorName($AuthorEmail) $(get-date -Format "yyyy"), licensed under Apache 2.0 License."
+                        $LicenseUri = "http://www.apache.org/licenses/LICENSE-2.0.html"
+                    }
+                    Default {
+                        $Copyright = "(c) $AuthorName($AuthorEmail) $(get-date -Format "yyyy"). All rights reserved."
+                    }
+                }
+
+                $RequiredModulesArray = @()
+                $RequiredOriginArray  = @()
+
+                $ModuleParameters = @{}
+
+                $ModuleParameters += @{ Path               = "$Location\$BaseFileName.psd1" }
+                $ModuleParameters += @{ ModuleVersion              = "0.0.0.1" }
+                $ModuleParameters += @{ Author                     = $AuthorName }
+                $ModuleParameters += @{ PowerShellVersion          = $PSVersionTable.PSVersion }
+                $ModuleParameters += @{ ClrVersion                 = $PSVersionTable.CLRVersion }
+                $ModuleParameters += @{ DotNetFrameworkVersion     = $PSVersionTable.DotNetFrameworkVersion }
+                $ModuleParameters += @{ RootModule                 = "$BaseFileName.psm1" }
+                $ModuleParameters += @{ Copyright                  = $Copyright }
+                $ModuleParameters += @{ FunctionsToExport          = '*' }
+                $ModuleParameters += @{ CmdletsToExport            = '*' }
+                $ModuleParameters += @{ VariablesToExport          = '*' }
+                $ModuleParameters += @{ AliasesToExport            = '*' }
+                $ModuleParameters += @{ GUID                       = New-Guid }
+                $ModuleParameters += @{ Description                = $Description }
+                $ModuleParameters += @{ ProjectUri                 = Get-ProjectOrigin -FilePath $FilePath }
+                foreach ( $item in $RequiredModules ){
+                    $RequiredModulesArray += $item.Module
+                    $RequiredOriginArray  += Get-ProjectOrigin -FilePath  ( get-module $item.module ).path
+                }
+                if ( $RequiredModules ){
+                    $ModuleParameters += @{ RequiredModules            = ( $RequiredModulesArray -join ", " ) }
+                    $ModuleParameters += @{ ExternalModuleDependencies = $RequiredOriginArray }
+                }
+                if ( $LicenseUri ){
+                    $ModuleParameters += @{ LicenseUri             = $LicenseUri }
+                }
+                if ( $tags ){
+                    if ( !('powershell' -in $tags) ){
+                        $tags += 'powershell'
+                    }
+                    if ( !('AlexK' -in $tags) ){
+                        $tags += 'AlexK'
+                    }
+                    $ModuleParameters += @{ Tags                   = $Tags }
+                }
+
+
+                New-ModuleManifest @ModuleParameters
+                Add-ToLog -Message "Module [$($Module.name)] successfully created."  -logFilePath $LogPath -Display -Status "info"
+                $res = $true
+            }
+            Else {
+                Add-ToLog -Message "Module [$($Module.name)] not found."  -logFilePath $LogPath -Display -Status "warning"
+            }
+        }
+        Else {
+            Add-ToLog -Message "Module [$($Module.name)] manifest already exist."  -logFilePath $LogPath -Display -Status "warning"
+        }
+        if ( $PassThru ){
+            return $res
+        }
+}
 function Get-FunctionDetails {
 <#
     .SYNOPSIS
@@ -146,11 +231,11 @@ function Get-FunctionDetails {
     function Get-ParameterDetails {
     <#
         .SYNOPSIS
-            Get attribute details
+            Get parameter details
         .DESCRIPTION
             AST. Get function Attribute detail.
         .EXAMPLE
-            Get-AttributeDetails [-Attributes $Attributes]
+            Get-ParameterDetails [-Parameters $Parameters]
         .NOTES
             AUTHOR  Alexk
             CREATED 02.11.20
@@ -190,11 +275,11 @@ function Get-FunctionDetails {
     function Get-HelpContent {
     <#
         .SYNOPSIS
-            Get attribute details
+            Get help content
         .DESCRIPTION
             AST. Get function Attribute detail.
         .EXAMPLE
-            Get-AttributeDetails [-Attributes $Attributes]
+            Get-HelpContent [-Function $Function]
         .NOTES
             AUTHOR  Alexk
             CREATED 02.11.20
@@ -263,11 +348,11 @@ function Get-FunctionDetails {
 Function Get-FunctionChanges {
 <#
     .SYNOPSIS
-        Get function details
+        Get function changes
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-FunctionDetails [-FilePath $FilePath]
+        Get-FunctionChanges [-Functions $Functions] [-PrevFunctions $PrevFunctions]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
@@ -393,11 +478,11 @@ Function Get-FunctionChanges {
 function Get-CommitInfo {
 <#
     .SYNOPSIS
-        Get function details
+        Get commit info
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-FunctionDetails [-FilePath $FilePath]
+        Get-CommitInfo [-FilePath $FilePath]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
@@ -478,11 +563,11 @@ function Get-CommitInfo {
 function Get-ChangeLog {
 <#
     .SYNOPSIS
-        Get function details
+        Get change log
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-FunctionDetails [-FilePath $FilePath]
+        Get-ChangeLog [-FilePath $FilePath] [-LogFileName $LogFileName] [-SaveLog $SaveLog] [-LogPath $LogPath=$Global:gsScriptLogFilePath]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
@@ -499,11 +584,11 @@ function Get-ChangeLog {
     function Invoke-DataFormat {
     <#
         .SYNOPSIS
-            Get attribute details
+            Invoke data format
         .DESCRIPTION
             AST. Get function Attribute detail.
         .EXAMPLE
-            Get-AttributeDetails [-Attributes $Attributes]
+            Invoke-DataFormat [-Data $Data]
         .NOTES
             AUTHOR  Alexk
             CREATED 02.11.20
@@ -667,11 +752,11 @@ function Get-ChangeLog {
 function Get-ModuleVersion {
 <#
     .SYNOPSIS
-        Get function details
+        Get module version
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-FunctionDetails [-FilePath $FilePath]
+        Get-ModuleVersion [-FilePath $FilePath]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
@@ -690,12 +775,12 @@ function Get-ModuleVersion {
     # D revision
 
     $FileExt  = Split-Path -Path $FilePath -Extension
-    $Location = Split-Path -path $FilePath
+    $Location = Split-Path -path $FilePath -Parent
     $FileName = Split-Path -path $FilePath -LeafBase
 
     switch ( $FileExt.ToLower() ) {
         ".psm1" {
-            $Res = (Get-Module -Name $FileName).Version
+            $Res = (import-Module -Name $FileName -PassThru).Version
             # $PSDFilePath = "$Location\$FileName.psd1"
             # $Content     = Get-Content -Path $PSDFilePath
             # foreach ( $line in $Content ) {
@@ -710,11 +795,11 @@ function Get-ModuleVersion {
 Function Start-FunctionTest {
 <#
     .SYNOPSIS
-        Get function details
+        Start function test
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-FunctionDetails [-FilePath $FilePath]
+        Start-FunctionTest [-FilePath $FilePath] [-LogFileName $LogFileName] [-SaveLog $SaveLog] [-LogPath $LogPath=$Global:gsScriptLogFilePath]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
@@ -886,11 +971,11 @@ Function Start-FunctionTest {
 Function Remove-RightSpace {
 <#
     .SYNOPSIS
-        Get function details
+        Remove right space
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-FunctionDetails [-FilePath $FilePath]
+        Remove-RightSpace [-FilePath $FilePath] [-LogPath $LogPath=$Global:gsScriptLogFilePath]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
@@ -957,11 +1042,11 @@ Function Remove-RightSpace {
 Function Start-ScriptAnalyzer {
 <#
     .SYNOPSIS
-        Get function details
+        Start script analyzer
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-FunctionDetails [-FilePath $FilePath]
+        Start-ScriptAnalyzer [-FilePath $FilePath] [-LogFileName $LogFileName] [-SaveLog $SaveLog] [-LogPath $LogPath=$Global:gsScriptLogFilePath]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
@@ -1036,11 +1121,11 @@ Function Start-ScriptAnalyzer {
 Function Update-HelpContent {
 <#
     .SYNOPSIS
-        Get function details
+        Update help content
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-FunctionDetails [-FilePath $FilePath]
+        Update-HelpContent [-FilePath $FilePath] [-Changes $Changes] [-UpdateVersion $UpdateVersion] [-LogPath $LogPath=$Global:gsScriptLogFilePath]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
@@ -1057,11 +1142,11 @@ Function Update-HelpContent {
     Function Get-NewExamples {
     <#
         .SYNOPSIS
-            Get attribute details
+            Get new examples
         .DESCRIPTION
             AST. Get function Attribute detail.
         .EXAMPLE
-            Get-AttributeDetails [-Attributes $Attributes]
+            Get-NewExamples -Function $Function
         .NOTES
             AUTHOR  Alexk
             CREATED 02.11.20
@@ -1145,11 +1230,11 @@ Function Update-HelpContent {
     Function Get-NewDescription {
     <#
         .SYNOPSIS
-            Get attribute details
+            Get new description
         .DESCRIPTION
             AST. Get function Attribute detail.
         .EXAMPLE
-            Get-AttributeDetails [-Attributes $Attributes]
+            Get-NewDescription -Function $Function [-FilePath $FilePath]
         .NOTES
             AUTHOR  Alexk
             CREATED 02.11.20
@@ -1185,11 +1270,11 @@ Function Update-HelpContent {
     Function Get-NewNotes {
     <#
         .SYNOPSIS
-            Get attribute details
+            Get new notes
         .DESCRIPTION
             AST. Get function Attribute detail.
         .EXAMPLE
-            Get-AttributeDetails [-Attributes $Attributes]
+            Get-NewNotes -Function $Function [-UpdateVersion $UpdateVersion] [-DefaultAuthor $DefaultAuthor="Alexk"]
         .NOTES
             AUTHOR  Alexk
             CREATED 02.11.20
@@ -1335,11 +1420,11 @@ Function Update-HelpContent {
     Function Get-NewSynopsis {
     <#
         .SYNOPSIS
-            Get attribute details
+            Get new synopsis
         .DESCRIPTION
             AST. Get function Attribute detail.
         .EXAMPLE
-            Get-AttributeDetails [-Attributes $Attributes]
+            Get-NewSynopsis -Function $Function [-UpdateVersion $UpdateVersion]
         .NOTES
             AUTHOR  Alexk
             CREATED 02.11.20
@@ -1372,14 +1457,45 @@ Function Update-HelpContent {
 
         return $res
     }
-    Function Get-UpdatedHelpContent {
+    Function Get-NewComponent {
     <#
         .SYNOPSIS
-            Get attribute details
+            Get new component
         .DESCRIPTION
             AST. Get function Attribute detail.
         .EXAMPLE
-            Get-AttributeDetails [-Attributes $Attributes]
+            Get-NewComponent -Function $Function
+        .NOTES
+            AUTHOR  Alexk
+            CREATED 02.11.20
+            VER     1
+    #>
+            [CmdletBinding()]
+            Param(
+                [Parameter( Mandatory = $true, Position = 0, HelpMessage = "AST Function." )]
+                $Function
+            )
+
+            $Res = ""
+            $Component = $Function.HelpContent.Component
+            if ( $Component ) {
+                $res = $Component.trim()
+            }
+            Else {
+                $res = ( $Global:gsImportedModule| Select-Object module -Unique ).module  -join ", "
+
+            }
+
+            return $res
+    }
+    Function Get-UpdatedHelpContent {
+    <#
+        .SYNOPSIS
+            Get updated help content
+        .DESCRIPTION
+            AST. Get function Attribute detail.
+        .EXAMPLE
+            Get-UpdatedHelpContent -Function $Function [-Role $Role] [-RemoteHelpRunspace $RemoteHelpRunspace] [-Parameters $Parameters] [-Notes $Notes] [-MamlHelpFile $MamlHelpFile] [-Links $Links] [-Synopsis $Synopsis] [-Inputs $Inputs] [-ForwardHelpTargetName $ForwardHelpTargetName] [-ForwardHelpCategory $ForwardHelpCategory] [-Examples $Examples] [-Description $Description] [-Component $Component] [-FilePath $FilePath] [-Functionality $Functionality] [-UpdateVersion $UpdateVersion]
         .NOTES
             AUTHOR  Alexk
             CREATED 02.11.20
@@ -1431,6 +1547,9 @@ Function Update-HelpContent {
                 $NewSynopsis = Get-NewSynopsis -Function $Function
             }
         }
+        if ( $Component ){
+            $NewComponent = Get-NewComponent -Function $Function
+        }
 
         $Base = $Function.StartColumnNumber - 1
 
@@ -1481,11 +1600,11 @@ Function Update-HelpContent {
     Function Get-CurrentHelpContent {
     <#
         .SYNOPSIS
-            Get attribute details
+            Get current help content
         .DESCRIPTION
             AST. Get function Attribute detail.
         .EXAMPLE
-            Get-AttributeDetails [-Attributes $Attributes]
+            Get-CurrentHelpContent -Function $Function
         .NOTES
             AUTHOR  Alexk
             CREATED 02.11.20
@@ -1543,7 +1662,7 @@ Function Update-HelpContent {
             Text              = $ModuleText
         }
 
-        $UpdatedHelpContent = Get-UpdatedHelpContent -Function $PSO -FilePath $FilePath -Examples -Description -Notes -synopsis -UpdateVersion
+        $UpdatedHelpContent = Get-UpdatedHelpContent -Function $PSO -FilePath $FilePath -Examples -Description -Notes -synopsis -UpdateVersion -Component
         $CurrentHelpContent = Get-CurrentHelpContent -Function $PSO
 
         $ReplaceData = [PSCustomObject]@{
@@ -1612,7 +1731,14 @@ Function Update-HelpContent {
         $replace     = $item.replace -join "`n"
         $find        = $item.find
         if ( ($replace.contains("<#") -and $replace.contains("#>")) -and ($find.contains("<#") -and $find.contains("#>") -or ( $find -ne "" )) ) {
-            $FileContent = $FileContent -replace [regex]::Escape($Find), $replace
+            $Res = ([regex]::Matches($FileContent, [regex]::Escape($Find))).count
+            if ( $Res -eq 1 ) {
+                $FileContent = $FileContent -replace [regex]::Escape($Find), $replace
+            }
+            Else {
+                Add-ToLog -Message "Found multiple [$Res] string: `n$Find!"  -logFilePath $LogPath -Display -Status "Error"
+                $res = $False
+            }
         }
         Else {
             Add-ToLog -Message "Found unconditional parameters for replacement find [$find] replace [$replace]!"  -logFilePath $LogPath -Display -Status "Error"
@@ -1637,7 +1763,7 @@ Function Update-HelpContent {
             }  Until  ( ($Answer.ToLower() -ne "y") -or ($Answer.ToLower() -ne "n"))
 
             if ( $Answer.ToLower() -eq "y" ){
-                $FileContent | Out-File -FilePath $FilePath -force
+                $FileContent | Out-File -FilePath $FilePath -NoNewline -force
                 Add-ToLog -Message "Updated help content for [$FilePath]"  -logFilePath $LogPath -Display -Status "info"
             }
             Else {
@@ -1646,7 +1772,7 @@ Function Update-HelpContent {
             }
         }
         Else {
-            $FileContent | Out-File -FilePath $FilePath -force
+            $FileContent | Out-File -FilePath $FilePath -NoNewline -force
             Add-ToLog -Message "Updated help content for [$FilePath]"  -logFilePath $LogPath -Display -Status "info"
         }
     }
@@ -1660,11 +1786,11 @@ Function Update-HelpContent {
 Function Update-ModuleMetaData {
 <#
     .SYNOPSIS
-        Get function details
+        Update module meta data
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-FunctionDetails [-FilePath $FilePath]
+        Update-ModuleMetaData [-FilePath $FilePath] [-Changes $Changes] [-CommitMessage $CommitMessage] [-AuthorName $AuthorName] [-AuthorEmail $AuthorEmail] [-ProjectStartYear $ProjectStartYear] [-LogPath $LogPath=$Global:gsScriptLogFilePath]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
@@ -1723,10 +1849,11 @@ Function Update-ModuleMetaData {
     if ( $Module ) {
         $ModuleParameters = @{}
 
-        $ModuleParameters += @{ Path          = "$Location\$BaseFileName.psd1" }
-        $ModuleParameters += @{ ModuleVersion = $UpdatedVersion }
-        $ModuleParameters += @{ Copyright     = $Copyright }
-        $ModuleParameters += @{ ReleaseNotes  = $ReleaseNotes }
+        $ModuleParameters += @{ Path               = "$Location\$BaseFileName.psd1" }
+        $ModuleParameters += @{ ModuleVersion      = $UpdatedVersion }
+        $ModuleParameters += @{ Copyright          = $Copyright }
+        $ModuleParameters += @{ ReleaseNotes       = $ReleaseNotes }
+        $ModuleParameters += @{ FunctionsToExport  = '*'}
 
         Update-ModuleManifest @ModuleParameters -Verbose:$False
         Add-ToLog -Message "Module [$($Module.name)] successfully updated."  -logFilePath $LogPath -Display -Status "info"
@@ -1738,11 +1865,11 @@ Function Update-ModuleMetaData {
 Function Get-ChangeStatus {
 <#
     .SYNOPSIS
-        Get function details
+        Get change status
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-FunctionDetails [-FilePath $FilePath]
+        Get-ChangeStatus [-FilePath $FilePath]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
@@ -1782,11 +1909,11 @@ Function Get-ChangeStatus {
 Function Set-ChangeStatus {
 <#
     .SYNOPSIS
-        Get function details
+        Set change status
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-FunctionDetails [-FilePath $FilePath]
+        Set-ChangeStatus [-FilePath $FilePath] [-Type $Type]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
@@ -1836,11 +1963,11 @@ Function Set-ChangeStatus {
 Function Update-EmptySettings {
 <#
     .SYNOPSIS
-        Get function details
+        Update empty settings
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-FunctionDetails [-FilePath $FilePath]
+        Update-EmptySettings [-FilePath $FilePath] [-LogPath $LogPath=$Global:gsScriptLogFilePath]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
@@ -1870,15 +1997,18 @@ Function Get-ModuleHelpContent {
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-ModuleHelpContent [-FilePath $FilePath]
+        Get-ModuleHelpContent -FilePath $FilePath
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
-        VER     1
+        MOD     03.11.20
+        VER     2
 #>
     [CmdletBinding()]
     param (
-       [string] $FilePath
+        [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Full path to module file." )]
+        [ValidateNotNullOrEmpty()]
+        [string] $FilePath
     )
     $VarToken = $Null
     $VarError = $Null
@@ -1891,15 +2021,16 @@ Function Get-ModuleHelpContent {
 Function Get-CommentRegions {
 <#
     .SYNOPSIS
-        Get module help content
+        Get comment regions
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-ModuleHelpContent [-FilePath $FilePath]
+        Get-CommentRegions [-FilePath $FilePath]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
-        VER     1
+        MOD     03.11.20
+        VER     2
 #>
     [CmdletBinding()]
     param (
@@ -1933,15 +2064,16 @@ Function Get-CommentRegions {
 Function Get-PesterTemplate {
 <#
     .SYNOPSIS
-        Get module help content
+        Get pester template
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-ModuleHelpContent [-FilePath $FilePath]
+        Get-PesterTemplate [-FilePath $FilePath] [-Author $Author="AlexK"] [-name $name]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
-        VER     1
+        MOD     03.11.20
+        VER     2
 #>
     [CmdletBinding()]
     param (
@@ -2112,11 +2244,11 @@ Function Get-GitCurrentStatus {
 Function Invoke-GitCommit {
 <#
     .SYNOPSIS
-        Get git current status
+        Invoke git commit
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-GitCurrentStatus [-FilePath $FilePath]
+        Invoke-GitCommit -FilePath $FilePath -CommitMessage $CommitMessage [-CommitedFileList $CommitedFileList] [-Push $Push] [-PassThru $PassThru]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
@@ -2170,11 +2302,11 @@ Function Invoke-GitCommit {
 Function Get-CommitLog {
 <#
     .SYNOPSIS
-        Get git current status
+        Get commit log
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-GitCurrentStatus [-FilePath $FilePath]
+        Get-CommitLog -FilePath $FilePath [-CommitPSO $CommitPSO] [-LogFileName $LogFileName] [-LogPath $LogPath=$Global:gsScriptLogFilePath] [-SaveLog $SaveLog]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
@@ -2235,7 +2367,39 @@ Function Get-CommitLog {
 
     return $true
 }
+Function Get-ProjectOrigin {
+<#
+    .SYNOPSIS
+        Get project origin
+    .DESCRIPTION
+        AST. Get function Attribute detail.
+    .EXAMPLE
+        Get-ProjectOrigin -FilePath $FilePath
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 02.11.20
+        VER     1
+#>
+        [OutputType([string])]
+        [CmdletBinding()]
+        param (
+            [Parameter(Mandatory = $true, Position = 0, HelpMessage = "Script file path." )]
+            [string] $FilePath
+        )
+
+        $Location   = Split-Path -path $FilePath -Parent
+        $ModuleName = split-path -path $FilePath -LeafBase
+        Set-Location -path $Location
+
+        $Origin = & git config --get remote.origin.url
+
+        if ( !$Origin ){
+            $Origin = ( get-module $ModuleName | Select-Object ProjectUri ).ProjectUri
+        }
+        return $Origin
+}
 
 
 
-Export-ModuleMember -Function Get-FunctionDetails, Get-FunctionChanges, Get-CommitInfo, Get-ChangeLog, Get-ModuleVersion, Start-FunctionTest, Remove-RightSpace, Start-ScriptAnalyzer, Update-HelpContent, Update-ModuleMetaData, Get-ChangeStatus, Set-ChangeStatus, Update-EmptySettings, Get-ModuleHelpContent, Get-PesterTemplate, Get-CommentRegions, Set-PSModuleManifest, Get-GitCurrentStatus, Invoke-GitCommit, Get-CommitLog
+
+Export-ModuleMember -Function Get-FunctionDetails, Get-FunctionChanges, Get-CommitInfo, Get-ChangeLog, Get-ModuleVersion, Start-FunctionTest, Remove-RightSpace, Start-ScriptAnalyzer, Update-HelpContent, Update-ModuleMetaData, Get-ChangeStatus, Set-ChangeStatus, Update-EmptySettings, Get-ModuleHelpContent, Get-PesterTemplate, Get-CommentRegions, New-ModuleMetaData, Get-GitCurrentStatus, Invoke-GitCommit, Get-CommitLog, Get-ProjectOrigin

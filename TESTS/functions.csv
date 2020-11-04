@@ -1,5 +1,5 @@
 "ParentFunctionName";"FunctionName";"Description"
-"";"Set-PSModuleManifest";"Function return Array of ACL for all objects in the Path
+"";"New-ModuleMetaData";"Function return Array of ACL for all objects in the Path
 Use Type to filter item. ""file"", ""folder"", ""all""
 "
 "";"Get-FunctionDetails";"AST. Get function Attribute detail.
@@ -36,6 +36,8 @@ Use Type to filter item. ""file"", ""folder"", ""all""
 "
 "Update-HelpContent";"Get-NewSynopsis";"AST. Get function Attribute detail.
 "
+"Update-HelpContent";"Get-NewComponent";"AST. Get function Attribute detail.
+"
 "Update-HelpContent";"Get-UpdatedHelpContent";"AST. Get function Attribute detail.
 "
 "Update-HelpContent";"Get-CurrentHelpContent";"AST. Get function Attribute detail.
@@ -59,4 +61,6 @@ Use Type to filter item. ""file"", ""folder"", ""all""
 "";"Invoke-GitCommit";"AST. Get function Attribute detail.
 "
 "";"Get-CommitLog";"AST. Get function Attribute detail.
+"
+"";"Get-ProjectOrigin";"AST. Get function Attribute detail.
 "
