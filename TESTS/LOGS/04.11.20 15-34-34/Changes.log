@@ -1,0 +1,10 @@
+Changes 04.11.20 03:34:43
+================
+
+Changed functions:
+   Function: Get-FunctionDetails
+       Line difference [10]
+   Function: Get-FunctionDetails\Get-ParameterDetails
+       Line difference [10]
+   Function: Get-FunctionChanges
+       Line difference [51]

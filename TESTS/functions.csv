@@ -12,6 +12,7 @@ Use Type to filter item. ""file"", ""folder"", ""all""
 "
 "";"Get-FunctionChanges";"AST. Get function Attribute detail.
 "
+"Get-FunctionChanges";"Test-Changes";
 "";"Get-CommitInfo";"AST. Get function Attribute detail.
 "
 "";"Get-ChangeLog";"AST. Get function Attribute detail.

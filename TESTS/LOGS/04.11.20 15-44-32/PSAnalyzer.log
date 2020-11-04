@@ -1,0 +1,49 @@
+PSAnalyzer log
+==============
+
+   Information:
+       PSAvoidTrailingWhitespace:
+           AlexkBuildTools.psm1:269   Line has trailing whitespace
+           AlexkBuildTools.psm1:410   Line has trailing whitespace
+           AlexkBuildTools.psm1:433   Line has trailing whitespace
+           AlexkBuildTools.psm1:488   Line has trailing whitespace
+
+   Warning:
+       PSAvoidUsingCmdletAliases:
+           AlexkBuildTools.psm1:943   'select' is an alias of 'Select-Object'. Alias can introduce possible problems and make scripts hard to maintain. Please consider changing alias to its full content.
+
+       PSAvoidUsingEmptyCatchBlock:
+           AlexkBuildTools.psm1:1383  Empty catch block is used. Please use Write-Error or throw statements in catch blocks.
+           AlexkBuildTools.psm1:1393  Empty catch block is used. Please use Write-Error or throw statements in catch blocks.
+           AlexkBuildTools.psm1:1402  Empty catch block is used. Please use Write-Error or throw statements in catch blocks.
+           AlexkBuildTools.psm1:1410  Empty catch block is used. Please use Write-Error or throw statements in catch blocks.
+
+       PSReviewUnusedParameter:
+           AlexkBuildTools.psm1:1498  The parameter 'UpdateVersion' has been declared but not used. 
+           AlexkBuildTools.psm1:1573  The parameter 'ForwardHelpCategory' has been declared but not used. 
+           AlexkBuildTools.psm1:1574  The parameter 'ForwardHelpTargetName' has been declared but not used. 
+           AlexkBuildTools.psm1:1575  The parameter 'Functionality' has been declared but not used. 
+           AlexkBuildTools.psm1:1576  The parameter 'Inputs' has been declared but not used. 
+           AlexkBuildTools.psm1:1577  The parameter 'Links' has been declared but not used. 
+           AlexkBuildTools.psm1:1578  The parameter 'MamlHelpFile' has been declared but not used. 
+           AlexkBuildTools.psm1:1580  The parameter 'Parameters' has been declared but not used. 
+           AlexkBuildTools.psm1:1581  The parameter 'RemoteHelpRunspace' has been declared but not used. 
+           AlexkBuildTools.psm1:1582  The parameter 'Role' has been declared but not used. 
+           AlexkBuildTools.psm1:2147  The parameter 'Author' has been declared but not used. 
+
+       PSUseDeclaredVarsMoreThanAssignments:
+           AlexkBuildTools.psm1:445   The variable 'DeletedFunctions' is assigned but never used.
+           AlexkBuildTools.psm1:421   The variable 'PrevAttribName' is assigned but never used.
+           AlexkBuildTools.psm1:556   The variable 'FileName' is assigned but never used.
+           AlexkBuildTools.psm1:838   The variable 'Location' is assigned but never used.
+           AlexkBuildTools.psm1:921   The variable 'PrevTestPath' is assigned but never used.
+           AlexkBuildTools.psm1:1795  The variable 'SavedFileContent' is assigned but never used.
+           AlexkBuildTools.psm1:1587  The variable 'HelpContent' is assigned but never used.
+           AlexkBuildTools.psm1:1590  The variable 'NewExample' is assigned but never used.
+           AlexkBuildTools.psm1:1593  The variable 'NewDescription' is assigned but never used.
+           AlexkBuildTools.psm1:1597  The variable 'NewNotes' is assigned but never used.
+           AlexkBuildTools.psm1:1605  The variable 'NewSynopsis' is assigned but never used.
+           AlexkBuildTools.psm1:1612  The variable 'NewComponent' is assigned but never used.
+           AlexkBuildTools.psm1:1994  The variable 'Res' is assigned but never used.
+           AlexkBuildTools.psm1:2392  The variable 'Location' is assigned but never used.
+

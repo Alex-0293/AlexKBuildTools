@@ -143,15 +143,18 @@ function Get-FunctionDetails {
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-FunctionDetails [-FilePath $FilePath]
+        Get-FunctionDetails -FilePath $FilePath
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
         VER     1
 #>
     [CmdletBinding()]
+    [OutputType([PsObject])]
     param (
-       [string] $FilePath
+        [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Powershell file path." )]
+        [ValidateNotNullOrEmpty()]
+        [string] $FilePath
     )
 
     function Get-AttributeDetails {
@@ -214,6 +217,7 @@ function Get-FunctionDetails {
                 "OutputType" {
                     $PSO = [PSCustomObject]@{
                         TypeName          = $Item.TypeName
+                        Value             = $Item.PositionalArguments
                     }
                     $Res += $PSO
                 }
@@ -262,8 +266,17 @@ function Get-FunctionDetails {
                     "ValidateSet" {
                         $PSO | Add-Member -NotePropertyName $Attribute.TypeName -NotePropertyValue $Attribute.Value
                     }
-                    Default {
+                    "ValidateNotNullOrEmpty" {
                         $PSO | Add-Member -NotePropertyName $Attribute.TypeName -NotePropertyValue $Attribute.TypeName
+                    }
+
+                    Default {
+                        if ( $Attribute.TypeName.name -ne "psobject") {
+                            $PSO | Add-Member -NotePropertyName $Attribute.TypeName.name -NotePropertyValue $Attribute.TypeName.name
+                        }
+                        Else {
+                            $PSO | Add-Member -NotePropertyName "psobject1" -NotePropertyValue "psobject"
+                        }
                     }
                 }
             }
@@ -352,17 +365,149 @@ Function Get-FunctionChanges {
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-FunctionChanges [-Functions $Functions] [-PrevFunctions $PrevFunctions]
+        Get-FunctionChanges -Functions $Functions -PrevFunctions $PrevFunctions
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
         VER     1
 #>
+    [OutputType([PsObject])]
     [CmdletBinding()]
     param (
-        $Functions,
-        $PrevFunctions
+        [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Function to compare." )]
+        [ValidateNotNullOrEmpty()]
+        [PsObject] $Functions,
+        [Parameter( Mandatory = $true, Position = 1, HelpMessage = "Function to compare." )]
+        [ValidateNotNullOrEmpty()]
+        [PsObject] $PrevFunctions
     )
+
+    Function Test-Changes {
+    <#
+        .SYNOPSIS
+            Test changes
+        .EXAMPLE
+            Test-Changes -Function $Function -PrevFunction $PrevFunction
+        .NOTES
+            AUTHOR  Alexk
+            CREATED 04.11.20
+            VER     1
+    #>
+        [OutputType([PsObject])]
+        Param (
+            [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Function to compare." )]
+            [ValidateNotNullOrEmpty()]
+            [PsObject] $Function,
+            [Parameter( Mandatory = $true, Position = 1, HelpMessage = "Function to compare." )]
+            [ValidateNotNullOrEmpty()]
+            [PsObject] $PrevFunction
+        )
+
+        $Changed = @()
+        $Attributes = @()
+        $Parameters = @()
+
+        foreach ( $Item in $PrevFunction.Parameters ) {
+            foreach ( $Item1 in $Function.Parameters ) {
+                [string[]]$ChangedString = @()
+                $PrevParamName = $Item.name.Extent.Text
+                $ParamName     = $Item1.name.Extent.Text
+                if ( $PrevParamName -eq $ParamName ){
+                    $ChangedString = @()
+                    [string[]]$Parameters  = $Item1.psobject.Properties.name
+                    $Parameters += $Item.psobject.Properties.name
+                    $Parameters = $Parameters | Select-Object -Unique
+
+                    foreach ( $Parameter in $Parameters ) {
+                        if ( $Item.$Parameter.extent.text -ne $Item1.$Parameter.extent.text ){
+                            if ( $Parameter -ne $Item1.$Parameter.extent.text ){
+                                $ChangedString += "$Parameter [$($Item.$Parameter.extent.text)->$($Item1.$Parameter.extent.text)]"
+                            }
+                            Else{
+                                $ChangedString += "$Parameter [$($Item.$Parameter.extent.text)->`$true]"
+                            }
+                        }
+                    }
+                    if ( $ChangedString.count ) {
+                        $Changed += "[$($Item1.StaticType.name)] $ParamName ( $($ChangedString -join ", ") )"
+                    }
+                }
+            }
+        }
+
+        [string[]]$ChangedString = @()
+        [string[]]$AddString = @()
+        [string[]]$RemString = @()
+        if ( !$PrevFunction.Attributes -and $Function.Attributes ){
+            foreach ( $Item1 in $Function.Attributes ) {
+                if ( $Item1.value.extent.text ) {
+                    $AttribName     = $Item1.TypeName.Extent.Text
+                    $AddString += "$AttribName  [->$($Item1.value.extent.text)]"
+                }
+                Else {
+                    $AddString += "->$PrevAttribName"
+                }
+            }
+
+        }
+        foreach ( $Item in $PrevFunction.Attributes ) {
+            $PrevAttribName = $Item.TypeName.Extent.Text
+            if ( !$Function.Attributes -and $PrevFunction.Attributes ){
+                if ( $Item.value.extent.text ) {
+                    $RemString += "$PrevAttribName [$($Item.value.extent.text)->]"
+                }
+                Else {
+                    $RemString += "$PrevAttribName->"
+                }
+            }
+            foreach ( $Item1 in $Function.Attributes ) {
+                $AttribName     = $Item1.TypeName.Extent.Text
+
+                if  ( $PrevAttribName -notin $Function.Attributes.TypeName.Extent.Text ) {
+                    if ( $Item.value.extent.text ) {
+                        $RemString += "$PrevAttribName [$($Item.value.extent.text)->]"
+                    }
+                    Else {
+                        $RemString += "$PrevAttribName->"
+                    }
+                }
+                if  ( $AttribName -notin $PrevFunction.Attributes.TypeName.Extent.Text ) {
+                    if ( $Item1.value.extent.text ) {
+                        $AttribName     = $Item1.TypeName.Extent.Text
+                        $AddString += "$AttribName  [->$($Item1.value.extent.text)]"
+                    }
+                    Else {
+                        $AddString += "->$PrevAttribName"
+                    }
+                }
+                if ( ($PrevAttribName -eq $AttribName) -and ( $Item.value.extent.text ) ){
+                    $ChangedString = @()
+                    if ( $Item.value.extent.text -ne $Item1.value.extent.text ){
+                        $ChangedString += "$AttribName [$($Item.value.extent.text)->$($Item1.value.extent.text)]"
+                    }
+                }
+                if ( $ChangedString.count ) {
+                    $Changed += "$($ChangedString -join ", ")"
+                    [string[]]$ChangedString = @()
+                }
+            }
+        }
+
+        if ( $RemString.count ) {
+            $Rem = "$($RemString -join ", ")"
+        }
+        if ( $AddString.count ) {
+            $Add = "$($AddString -join ", ")"
+        }
+
+        $PSO = [PSCustomObject]@{
+            Changed = $Changed
+            Add     = $Add
+            Rem     = $Rem
+        }
+
+        return $PSO
+    }
 
     $DeletedFunctions = $PrevFunctions | Where-Object { $_.name -notin $Functions.Name }
     $AddedFunctions   = $Functions     | Where-Object { $_.name -notin $PrevFunctions.Name }
@@ -408,39 +553,8 @@ Function Get-FunctionChanges {
                                 }
                             }
                             $Changed = @()
-                            foreach ( $Item in $PrevFunction.Parameters ) {
-                                foreach ( $Item1 in $Function.Parameters ) {
-                                    [string[]]$ChangedString = @()
-                                    $PrevParamName = $Item.name.Extent.Text
-                                    $ParamName     = $Item1.name.Extent.Text
-                                    if ( $PrevParamName -eq $ParamName ){
-                                        if ( $item.Mandatory.extent.text -ne $item1.Mandatory.extent.text ){
-                                            $ChangedString += "Mandatory [$($item.Mandatory.extent.text)->$($item1.Mandatory.extent.text)]"
-                                        }
-                                        if ( $item.Position.extent.text -ne $item1.Position.extent.text ){
-                                            $ChangedString += "Position [$($item.Position.extent.text)->$($item1.Position.extent.text)]"
-                                        }
-                                        if ( $item.HelpMessage.extent.text -ne $item1.HelpMessage.extent.text ){
-                                            $ChangedString += "HelpMessage [$($item.HelpMessage.extent.text)->$($item1.HelpMessage.extent.text)]"
-                                        }
-                                        if ( $item.ParameterSetName.extent.text -ne $item1.ParameterSetName.extent.text ){
-                                            $ChangedString += "ParameterSetName [$($item.ParameterSetName.extent.text)->$($item1.ParameterSetName.extent.text)]"
-                                        }
-                                        if ( $item.ValueFromPipeline.extent.text -ne $item1.ValueFromPipeline.extent.text ){
-                                            $ChangedString += "ValueFromPipeline [$($item.ValueFromPipeline.extent.text)->$($item1.ValueFromPipeline.extent.text)]"
-                                        }
-                                        if ( $item.DefaultValue.extent.text -ne $item1.DefaultValue.extent.text ){
-                                            $ChangedString += "DefaultValue [$($item.DefaultValue.extent.text)->$($item1.DefaultValue.extent.text)]"
-                                        }
-                                        if ( $item.StaticType.extent.text -ne $item1.StaticType.extent.text ){
-                                            $ChangedString += "DefaultValue [$item.StaticType]->[$item1.StaticType]"
-                                        }
-                                        if ( $ChangedString.count ) {
-                                            $Changed += "[$($Item.StaticType)] $ParamName ( $($ChangedString -join ", ") )"
-                                        }
-                                    }
-                                }
-                            }
+                            $Changed = Test-Changes -PrevFunction $PrevFunction -Function $Function
+
                             if ( $Add ) {
                                 $PSO | Add-Member -NotePropertyName "ParametersAdd" -NotePropertyValue $Add
                             }
@@ -448,16 +562,25 @@ Function Get-FunctionChanges {
                                 $PSO | Add-Member -NotePropertyName "ParametersRemove" -NotePropertyValue $Rem
                             }
                             if ( $Changed ) {
-                                $PSO | Add-Member -NotePropertyName "ParametersChanged" -NotePropertyValue $Changed
+                                if ( $Changed.Changed ){
+                                    $PSO | Add-Member -NotePropertyName "ParametersChanged" -NotePropertyValue $Changed.Changed
+                                }
+                                if ( $Changed.Add ){
+                                    $PSO | Add-Member -NotePropertyName "AttributesAdded" -NotePropertyValue $Changed.Add
+                                }
+                                if ( $Changed.Rem ){
+                                    $PSO | Add-Member -NotePropertyName "AttributesRemoved" -NotePropertyValue $Changed.Rem
+                                }
+                                $Function.IsChanged =  $true
                             }
 
                             if ( $Add -or $Rem -or $Changed ) {
                                 $PSO | Add-Member -NotePropertyName "Parameters"     -NotePropertyValue $Function.Parameters
                                 $PSO | Add-Member -NotePropertyName "PrevParameters" -NotePropertyValue $PrevFunction.Parameters
+
                             }
                         }
                         if ( ( $PSO.psobject.Properties | Measure-Object ).count -gt 2 ){
-                            $Function.IsChanged =  $true
                             $ChangesArray       += $PSO
                         }
                     }
@@ -482,14 +605,17 @@ function Get-CommitInfo {
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-CommitInfo [-FilePath $FilePath]
+        Get-CommitInfo -FilePath $FilePath
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
         VER     1
 #>
+    [OutputType([PsObject])]
     [CmdletBinding()]
     param (
+        [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Powershell file path." )]
+        [ValidateNotNullOrEmpty()]
         [string] $FilePath
     )
     $Location = Split-Path -path $FilePath
@@ -567,17 +693,23 @@ function Get-ChangeLog {
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-ChangeLog [-FilePath $FilePath] [-LogFileName $LogFileName] [-SaveLog $SaveLog] [-LogPath $LogPath=$Global:gsScriptLogFilePath]
+        Get-ChangeLog -FilePath $FilePath [-LogFileName $LogFileName] [-SaveLog $SaveLog] [-LogPath $LogPath=$Global:gsScriptLogFilePath]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
         VER     1
 #>
+    [OutputType([PsObject],[AllowNull])]
     [CmdletBinding()]
     param (
+        [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Powershell file path." )]
+        [ValidateNotNullOrEmpty()]
         [string] $FilePath,
+        [Parameter( Mandatory = $false, Position = 1, HelpMessage = "Path to save log file" )]
         [string] $LogFileName,
+        [Parameter( Mandatory = $false, Position = 2, HelpMessage = "Save log to file." )]
         [switch] $SaveLog,
+        [Parameter( Mandatory = $false, Position = 3, HelpMessage = "Common log file path." )]
         [string] $LogPath = $Global:gsScriptLogFilePath
     )
 
@@ -588,15 +720,17 @@ function Get-ChangeLog {
         .DESCRIPTION
             AST. Get function Attribute detail.
         .EXAMPLE
-            Invoke-DataFormat [-Data $Data]
+            Invoke-DataFormat -Data $Data
         .NOTES
             AUTHOR  Alexk
             CREATED 02.11.20
             VER     1
     #>
+        [OutputType([PsObject])]
         [CmdletBinding()]
         param (
-            $Data
+            [Parameter( Mandatory = $true, Position = 0, HelpMessage = "String to format." )]
+            [string[]] $Data
         )
 
         $NewData = @()
@@ -756,14 +890,17 @@ function Get-ModuleVersion {
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-ModuleVersion [-FilePath $FilePath]
+        Get-ModuleVersion -FilePath $FilePath
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
         VER     1
 #>
+    [OutputType([PsObject],[AllowNull])]
     [CmdletBinding()]
     param(
+        [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Powershell file path." )]
+        [ValidateNotNullOrEmpty()]
         [string] $FilePath
     )
 
@@ -799,17 +936,23 @@ Function Start-FunctionTest {
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Start-FunctionTest [-FilePath $FilePath] [-LogFileName $LogFileName] [-SaveLog $SaveLog] [-LogPath $LogPath=$Global:gsScriptLogFilePath]
+        Start-FunctionTest -FilePath $FilePath [-LogFileName $LogFileName] [-SaveLog $SaveLog] [-LogPath $LogPath=$Global:gsScriptLogFilePath]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
         VER     1
 #>
+    [OutputType([bool])]
     [CmdletBinding()]
     param (
+        [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Powershell file path." )]
+        [ValidateNotNullOrEmpty()]
         [string] $FilePath,
+        [Parameter( Mandatory = $false, Position = 1, HelpMessage = "Path to save log file" )]
         [string] $LogFileName,
+        [Parameter( Mandatory = $false, Position = 2, HelpMessage = "Save log to file." )]
         [switch] $SaveLog,
+        [Parameter( Mandatory = $false, Position = 3, HelpMessage = "Common log file path." )]
         [string] $LogPath = $Global:gsScriptLogFilePath
     )
 
@@ -975,17 +1118,22 @@ Function Remove-RightSpace {
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Remove-RightSpace [-FilePath $FilePath] [-LogPath $LogPath=$Global:gsScriptLogFilePath]
+        Remove-RightSpace -FilePath $FilePath [-LogPath $LogPath=$Global:gsScriptLogFilePath]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
         VER     1
 #>
+    [OutputType([bool])]
     [CmdletBinding()]
     param (
+        [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Powershell file path." )]
+        [ValidateNotNullOrEmpty()]
         [string] $FilePath,
+        [Parameter( Mandatory = $false, Position = 1, HelpMessage = "Common log file path." )]
         [string] $LogPath = $Global:gsScriptLogFilePath
     )
+
     Add-ToLog -Message "Start removing right spaces for [$FilePath]"  -logFilePath $LogPath -Display -Status "info"
 
     $Res = $true
@@ -1046,17 +1194,23 @@ Function Start-ScriptAnalyzer {
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Start-ScriptAnalyzer [-FilePath $FilePath] [-LogFileName $LogFileName] [-SaveLog $SaveLog] [-LogPath $LogPath=$Global:gsScriptLogFilePath]
+        Start-ScriptAnalyzer -FilePath $FilePath [-LogFileName $LogFileName] [-SaveLog $SaveLog] [-LogPath $LogPath=$Global:gsScriptLogFilePath]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
         VER     1
 #>
+    [OutputType([bool])]
     [CmdletBinding()]
     param (
+        [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Powershell file path." )]
+        [ValidateNotNullOrEmpty()]
         [string] $FilePath,
+        [Parameter( Mandatory = $false, Position = 1, HelpMessage = "Path to save log file" )]
         [string] $LogFileName,
+        [Parameter( Mandatory = $false, Position = 2, HelpMessage = "Save log to file." )]
         [switch] $SaveLog,
+        [Parameter( Mandatory = $false, Position = 3, HelpMessage = "Common log file path." )]
         [string] $LogPath = $Global:gsScriptLogFilePath
     )
 
@@ -1125,18 +1279,24 @@ Function Update-HelpContent {
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Update-HelpContent [-FilePath $FilePath] [-Changes $Changes] [-UpdateVersion $UpdateVersion] [-LogPath $LogPath=$Global:gsScriptLogFilePath]
+        Update-HelpContent -FilePath $FilePath -Changes $Changes [-UpdateVersion $UpdateVersion] [-LogPath $LogPath=$Global:gsScriptLogFilePath]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
         MOD     04.11.20
         VER     2
 #>
+    [OutputType([bool])]
     [CmdletBinding()]
-    param(
+    param (
+        [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Powershell file path." )]
+        [ValidateNotNullOrEmpty()]
         [string] $FilePath,
-        $Changes,
+        [Parameter( Mandatory = $true, Position = 1, HelpMessage = "Path to save log file" )]
+        [PsObject] $Changes,
+        [Parameter( Mandatory = $false, Position = 2, HelpMessage = "Save log to file." )]
         [switch] $UpdateVersion,
+        [Parameter( Mandatory = $false, Position = 3, HelpMessage = "Common log file path." )]
         [string] $LogPath = $Global:gsScriptLogFilePath
     )
 
@@ -1153,6 +1313,7 @@ Function Update-HelpContent {
             CREATED 02.11.20
             VER     1
     #>
+        [OutputType([string])]
         [CmdletBinding()]
         Param(
             [Parameter( Mandatory = $true, Position = 0, HelpMessage = "AST Function." )]
@@ -1241,6 +1402,7 @@ Function Update-HelpContent {
             CREATED 02.11.20
             VER     1
     #>
+        [OutputType([string])]
         [CmdletBinding()]
         Param(
             [Parameter( Mandatory = $true, Position = 0, HelpMessage = "AST Function." )]
@@ -1281,6 +1443,7 @@ Function Update-HelpContent {
             CREATED 02.11.20
             VER     1
     #>
+        [OutputType([string])]
         [CmdletBinding()]
         Param(
             [Parameter( Mandatory = $true, Position = 0, HelpMessage = "AST Function." )]
@@ -1431,6 +1594,7 @@ Function Update-HelpContent {
             CREATED 02.11.20
             VER     1
     #>
+        [OutputType([string])]
         [CmdletBinding()]
         Param(
             [Parameter( Mandatory = $true, Position = 0, HelpMessage = "AST Function." )]
@@ -1471,23 +1635,24 @@ Function Update-HelpContent {
             CREATED 02.11.20
             VER     1
     #>
-            [CmdletBinding()]
-            Param(
-                [Parameter( Mandatory = $true, Position = 0, HelpMessage = "AST Function." )]
-                $Function
-            )
+        [OutputType([string])]
+        [CmdletBinding()]
+        Param(
+            [Parameter( Mandatory = $true, Position = 0, HelpMessage = "AST Function." )]
+            $Function
+        )
 
-            $Res = ""
-            $Component = $Function.HelpContent.Component
-            if ( $Component ) {
-                $res = $Component.trim()
-            }
-            Else {
-                $res = ( $Global:gsImportedModule| Select-Object module -Unique ).module  -join ", "
+        $Res = ""
+        $Component = $Function.HelpContent.Component
+        if ( $Component ) {
+            $res = $Component.trim()
+        }
+        Else {
+            $res = ( $Global:gsImportedModule| Select-Object module -Unique ).module  -join ", "
 
-            }
+        }
 
-            return $res
+        return $res
     }
     Function Get-UpdatedHelpContent {
     <#
@@ -1496,7 +1661,7 @@ Function Update-HelpContent {
         .DESCRIPTION
             AST. Get function Attribute detail.
         .EXAMPLE
-            Get-UpdatedHelpContent -Function $Function [-Role $Role] [-RemoteHelpRunspace $RemoteHelpRunspace] [-Parameters $Parameters] [-Notes $Notes] [-MamlHelpFile $MamlHelpFile] [-Links $Links] [-Synopsis $Synopsis] [-Inputs $Inputs] [-ForwardHelpTargetName $ForwardHelpTargetName] [-ForwardHelpCategory $ForwardHelpCategory] [-Examples $Examples] [-Description $Description] [-Component $Component] [-FilePath $FilePath] [-Functionality $Functionality] [-UpdateVersion $UpdateVersion]
+            Get-UpdatedHelpContent -Function $Function -FilePath $FilePath [-Role $Role] [-RemoteHelpRunspace $RemoteHelpRunspace] [-Parameters $Parameters] [-Notes $Notes] [-MamlHelpFile $MamlHelpFile] [-Links $Links] [-Inputs $Inputs] [-Functionality $Functionality] [-ForwardHelpTargetName $ForwardHelpTargetName] [-ForwardHelpCategory $ForwardHelpCategory] [-Examples $Examples] [-Description $Description] [-Component $Component] [-Synopsis $Synopsis] [-UpdateVersion $UpdateVersion]
         .NOTES
             AUTHOR  Alexk
             CREATED 02.11.20
@@ -1506,21 +1671,38 @@ Function Update-HelpContent {
         param (
             [Parameter( Mandatory = $True, Position = 0, HelpMessage = "Function metadata.")]
             $Function,
+            [Parameter( Mandatory = $true, Position = 1, HelpMessage = "Powershell file path." )]
+            [ValidateNotNullOrEmpty()]
             [string] $FilePath,
+            [Parameter( Mandatory = $false, Position = 2, HelpMessage = "Recreate components." )]
             [switch] $Component,
+            [Parameter( Mandatory = $false, Position = 3, HelpMessage = "Recreate Description." )]
             [switch] $Description,
+            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate Examples." )]
             [switch] $Examples,
+            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate ForwardHelpCategory." )]
             [switch] $ForwardHelpCategory,
+            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate ForwardHelpTargetName." )]
             [switch] $ForwardHelpTargetName,
+            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate Functionality." )]
             [switch] $Functionality,
+            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate Inputs." )]
             [switch] $Inputs,
+            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate Links." )]
             [switch] $Links,
+            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate MamlHelpFile." )]
             [switch] $MamlHelpFile,
+            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate Notes." )]
             [switch] $Notes,
+            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate Parameters." )]
             [switch] $Parameters,
+            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate RemoteHelpRunspace." )]
             [switch] $RemoteHelpRunspace,
+            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate Role." )]
             [switch] $Role,
+            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate Synopsis." )]
             [switch] $Synopsis,
+            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Generate new version." )]
             [switch] $UpdateVersion
         )
 
@@ -1796,20 +1978,29 @@ Function Update-ModuleMetaData {
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Update-ModuleMetaData [-FilePath $FilePath] [-Changes $Changes] [-CommitMessage $CommitMessage] [-AuthorName $AuthorName] [-AuthorEmail $AuthorEmail] [-ProjectStartYear $ProjectStartYear] [-LogPath $LogPath=$Global:gsScriptLogFilePath]
+        Update-ModuleMetaData -FilePath $FilePath -Changes $Changes -CommitMessage $CommitMessage -AuthorName $AuthorName -AuthorEmail $AuthorEmail -ProjectStartYear $ProjectStartYear [-LogPath $LogPath=$Global:gsScriptLogFilePath]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
         VER     1
 #>
+    [OutputType([bool])]
     [CmdletBinding()]
     param (
+        [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Powershell file path." )]
+        [ValidateNotNullOrEmpty()]
         [string] $FilePath,
-        $Changes,
-        $CommitMessage,
-        $AuthorName,
-        $AuthorEmail,
-        $ProjectStartYear,
+        [Parameter( Mandatory = $true, Position = 3, HelpMessage = "Change data." )]
+        [PsObject] $Changes,
+        [Parameter( Mandatory = $true, Position = 3, HelpMessage = "Git commit message." )]
+        [string] $CommitMessage,
+        [Parameter( Mandatory = $true, Position = 3, HelpMessage = "Author name." )]
+        [string] $AuthorName,
+        [Parameter( Mandatory = $true, Position = 3, HelpMessage = "Author email." )]
+        [string] $AuthorEmail,
+        [Parameter( Mandatory = $true, Position = 3, HelpMessage = "Year, project was started." )]
+        [string] $ProjectStartYear,
+        [Parameter( Mandatory = $false, Position = 3, HelpMessage = "Common log file path." )]
         [string] $LogPath = $Global:gsScriptLogFilePath
     )
     <#
@@ -1875,14 +2066,17 @@ Function Get-ChangeStatus {
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-ChangeStatus [-FilePath $FilePath]
+        Get-ChangeStatus -FilePath $FilePath
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
         VER     1
 #>
+    [OutputType([PsObject])]
     [CmdletBinding()]
     param(
+        [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Powershell file path." )]
+        [ValidateNotNullOrEmpty()]
         [string] $FilePath
     )
 
@@ -1919,7 +2113,7 @@ Function Set-ChangeStatus {
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Set-ChangeStatus [-FilePath $FilePath] [-Type $Type]
+        Set-ChangeStatus -FilePath $FilePath -Type $Type
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
@@ -1927,7 +2121,11 @@ Function Set-ChangeStatus {
 #>
     [CmdletBinding()]
     param(
+        [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Powershell file path." )]
+        [ValidateNotNullOrEmpty()]
         [string] $FilePath,
+        [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Object type." )]
+        [ValidateSet("HelpContent","ModuleMetaData")]
         [string] $Type
     )
 
@@ -1973,15 +2171,19 @@ Function Update-EmptySettings {
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Update-EmptySettings [-FilePath $FilePath] [-LogPath $LogPath=$Global:gsScriptLogFilePath]
+        Update-EmptySettings -FilePath $FilePath [-LogPath $LogPath=$Global:gsScriptLogFilePath]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
         VER     1
 #>
+    [OutputType([bool])]
     [CmdletBinding()]
-    param(
+    param (
+        [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Powershell file path." )]
+        [ValidateNotNullOrEmpty()]
         [string] $FilePath,
+        [Parameter( Mandatory = $false, Position = 3, HelpMessage = "Common log file path." )]
         [string] $LogPath = $Global:gsScriptLogFilePath
     )
 
@@ -2010,6 +2212,7 @@ Function Get-ModuleHelpContent {
         MOD     03.11.20
         VER     2
 #>
+    [OutputType([PsObject])]
     [CmdletBinding()]
     param (
         [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Full path to module file." )]
@@ -2031,15 +2234,18 @@ Function Get-CommentRegions {
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-CommentRegions [-FilePath $FilePath]
+        Get-CommentRegions -FilePath $FilePath
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
         MOD     03.11.20
         VER     2
 #>
+    [OutputType([PsObject])]
     [CmdletBinding()]
     param (
+        [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Powershell file path." )]
+        [ValidateNotNullOrEmpty()]
         [string] $FilePath
     )
 
@@ -2074,18 +2280,21 @@ Function Get-PesterTemplate {
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-PesterTemplate [-FilePath $FilePath] [-Author $Author="AlexK"] [-name $name]
+        Get-PesterTemplate -FilePath $FilePath -Author $Author="AlexK"
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
         MOD     03.11.20
         VER     2
 #>
+    [OutputType([string[]])]
     [CmdletBinding()]
     param (
+        [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Powershell file path." )]
+        [ValidateNotNullOrEmpty()]
         [string] $FilePath,
-        [string] $Author = "AlexK",
-        [string] $name
+        [Parameter( Mandatory = $true, Position = 1, HelpMessage = "Test file Author." )]
+        [string] $Author = "AlexK"
     )
 
     $FileExt = Split-Path -Path $FilePath -Extension
@@ -2105,7 +2314,6 @@ Function Get-PesterTemplate {
     .DESCRIPTION
         Generated by AlexKBuildTools\Get-PesterTemplate ( https://github.com/Alex-0293/AlexKBuildTools )
     .NOTES
-        NAME    $name
         VER     1
         AUTHOR  Alexk
         CREATED $(get-date -Format "dd.MM.yy")
@@ -2173,14 +2381,17 @@ Function Get-GitCurrentStatus {
     .DESCRIPTION
         AST. Get function Attribute detail.
     .EXAMPLE
-        Get-GitCurrentStatus [-FilePath $FilePath]
+        Get-GitCurrentStatus -FilePath $FilePath
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
         VER     1
 #>
+    [OutputType([PsObject])]
     [CmdletBinding()]
     param (
+        [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Powershell file path." )]
+        [ValidateNotNullOrEmpty()]
         [string] $FilePath
     )
 
@@ -2324,8 +2535,11 @@ Function Get-CommitLog {
         [string] $FilePath,
         [Parameter(Mandatory = $false, Position = 1, HelpMessage = "Path to committed files." )]
         [pscustomobject] $CommitPSO,
+        [Parameter(Mandatory = $false, Position = 2, HelpMessage = "Log file path." )]
         [string] $LogFileName,
+        [Parameter(Mandatory = $false, Position = 3, HelpMessage = "Common log file path." )]
         [string] $LogPath = $Global:gsScriptLogFilePath,
+        [Parameter(Mandatory = $false, Position = 4, HelpMessage = "Save log to disk." )]
         [switch] $SaveLog
     )
 
