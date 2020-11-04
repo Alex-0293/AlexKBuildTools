@@ -9,8 +9,8 @@
     .NOTES
         AUTHOR  Alexk
         CREATED 29.10.20
-        MOD     03.11.20
-        VER     3
+        MOD     04.11.20
+        VER     4
 #>
 
 
@@ -1129,7 +1129,8 @@ Function Update-HelpContent {
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
-        VER     1
+        MOD     04.11.20
+        VER     2
 #>
     [CmdletBinding()]
     param(
@@ -1662,7 +1663,12 @@ Function Update-HelpContent {
             Text              = $ModuleText
         }
 
-        $UpdatedHelpContent = Get-UpdatedHelpContent -Function $PSO -FilePath $FilePath -Examples -Description -Notes -synopsis -UpdateVersion -Component
+        if ( ( $Changes.ChangedFunctions ) -or ( $Changes.Added ) -or ( $Changes.Deleted ) ){
+            $UpdatedHelpContent = Get-UpdatedHelpContent -Function $PSO -FilePath $FilePath -Examples -Description -Notes -synopsis -Component -UpdateVersion
+        }
+        Else {
+            $UpdatedHelpContent = Get-UpdatedHelpContent -Function $PSO -FilePath $FilePath -Examples -Description -Notes -synopsis -Component
+        }
         $CurrentHelpContent = Get-CurrentHelpContent -Function $PSO
 
         $ReplaceData = [PSCustomObject]@{
@@ -1929,7 +1935,7 @@ Function Set-ChangeStatus {
 
     $LastCommitInfo = Get-CommitInfo -FilePath $FilePath
 
-    $Location       = Split-Path -path $FilePath
+    $Location       = Split-Path -path $FilePath -Parent
     $ChangeFilePath = "$Location\$($Global:gsTESTSFolder)\VersionAppliance.csv"
     $NewData = @()
     if ( test-path -path $ChangeFilePath ){
@@ -2398,7 +2404,6 @@ Function Get-ProjectOrigin {
         }
         return $Origin
 }
-
 
 
 
