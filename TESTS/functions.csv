@@ -65,3 +65,4 @@ Use Type to filter item. ""file"", ""folder"", ""all""
 "
 "";"Get-ProjectOrigin";"AST. Get function Attribute detail.
 "
+"";"Open-InVscode";

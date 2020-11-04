@@ -10,7 +10,7 @@
         AUTHOR  Alexk
         CREATED 29.10.20
         MOD     04.11.20
-        VER     4
+        VER     5
 #>
 
 
@@ -1122,7 +1122,8 @@ Function Remove-RightSpace {
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
-        VER     1
+        MOD     04.11.20
+        VER     2
 #>
     [OutputType([bool])]
     [CmdletBinding()]
@@ -1160,14 +1161,14 @@ Function Remove-RightSpace {
             $TmpFilename  = "$Location\tmp.$FileName"
 
             $NewContent | Out-File -FilePath $TmpFilename -force
-            & code -r -d $FilePath $TmpFilename
+            Open-InVscode -ReuseOpenWindow -Compare -FilePath $FilePath -FilePath1 $TmpFilename
             $Answer = ""
             do {
                 $Answer = read-host "Do you want to proceed with this changes?[y/n]"
             }  Until  ( ($Answer.ToLower() -ne "y") -or ($Answer.ToLower() -ne "n"))
 
             if ( $Answer.ToLower() -eq "y" ){
-                $NewContent | Out-File -FilePath $FilePath -force
+                $NewContent | Out-File -FilePath $FilePath -NoNewline -force
                 Add-ToLog -Message "Removed right spaces for [$FilePath]"  -logFilePath $LogPath -Display -Status "info"
                 Remove-Item -path $TmpFilename -Force
             }
@@ -1177,7 +1178,7 @@ Function Remove-RightSpace {
             }
         }
         Else {
-           $NewContent | Out-File -FilePath $FilePath -Force
+           $NewContent | Out-File -FilePath $FilePath -NoNewline -Force
         }
         Add-ToLog -Message "Removed right spaces for [$FilePath]"  -logFilePath $LogPath -Display -Status "info"
     }
@@ -1284,7 +1285,7 @@ Function Update-HelpContent {
         AUTHOR  Alexk
         CREATED 02.11.20
         MOD     04.11.20
-        VER     2
+        VER     3
 #>
     [OutputType([bool])]
     [CmdletBinding()]
@@ -1944,7 +1945,7 @@ Function Update-HelpContent {
 
     if ( $CompareFiles ) {
         if ( $DebugMode ){
-            & code -r -d $FilePath $TmpFilename
+            Open-InVscode -ReuseOpenWindow -Compare -FilePath $FilePath -FilePath1 $TmpFilename
             $Answer = ""
             do {
                 $Answer = read-host "Do you want to proceed with help content changes?[y/n]"
@@ -2619,6 +2620,52 @@ Function Get-ProjectOrigin {
         return $Origin
 }
 
+Function Open-InVscode {
+<#
+    .SYNOPSIS
+        Open in vscode
+    .EXAMPLE
+        Parameter set: "Compare"
+        Open-InVscode -FilePath $FilePath -FilePath1 $FilePath1 [-ReuseOpenWindow $ReuseOpenWindow] [-Compare $Compare] [-PassThru $PassThru]
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 04.11.20
+        VER     1
+#>
+        [CmdletBinding()]
+        param (
+            [Parameter(Mandatory = $true, Position = 0, HelpMessage = "Script file path." )]
+            [string] $FilePath,
+            [Parameter(Mandatory = $true, Position = 1, ParameterSetName = "Compare", HelpMessage = "Script file path 1." )]
+            [string] $FilePath1,
+            [Parameter(Mandatory = $false, Position = 2, HelpMessage = "Open new file in existed window." )]
+            [switch] $ReuseOpenWindow,
+            [Parameter(Mandatory = $false, Position = 3, ParameterSetName = "Compare", HelpMessage = "Visual compare two files." )]
+            [switch] $Compare,
+            [Parameter(Mandatory = $false, Position = 4, HelpMessage = "Return object." )]
+            [switch] $PassThru
+        )
+
+        $StartArguments = @()
+
+        if ( $ReuseOpenWindow ){
+            $StartArguments += "-r"
+        }
+        if ( $Compare ){
+            $StartArguments += "-d"
+            $StartArguments += "`"$FilePath`""
+            $StartArguments += "`"$FilePath1`""
+        }
+        Else {
+            $StartArguments += "`"$FilePath`""
+        }
+
+        $res = & code $StartArguments
+
+        if ( $PassThru ) {
+            Return $Res
+        }
+}
 
 
-Export-ModuleMember -Function Get-FunctionDetails, Get-FunctionChanges, Get-CommitInfo, Get-ChangeLog, Get-ModuleVersion, Start-FunctionTest, Remove-RightSpace, Start-ScriptAnalyzer, Update-HelpContent, Update-ModuleMetaData, Get-ChangeStatus, Set-ChangeStatus, Update-EmptySettings, Get-ModuleHelpContent, Get-PesterTemplate, Get-CommentRegions, New-ModuleMetaData, Get-GitCurrentStatus, Invoke-GitCommit, Get-CommitLog, Get-ProjectOrigin
+Export-ModuleMember -Function Get-FunctionDetails, Get-FunctionChanges, Get-CommitInfo, Get-ChangeLog, Get-ModuleVersion, Start-FunctionTest, Remove-RightSpace, Start-ScriptAnalyzer, Update-HelpContent, Update-ModuleMetaData, Get-ChangeStatus, Set-ChangeStatus, Update-EmptySettings, Get-ModuleHelpContent, Get-PesterTemplate, Get-CommentRegions, New-ModuleMetaData, Get-GitCurrentStatus, Invoke-GitCommit, Get-CommitLog, Get-ProjectOrigin, Open-InVscode
