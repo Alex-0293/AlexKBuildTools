@@ -53,8 +53,7 @@ PowerShellVersion = '7.0.3'
 # ProcessorArchitecture = ''
 
 # Modules that must be imported into the global environment prior to importing this module
-RequiredModules = @('AlexkUtils', 
-               'AlexkVMUtils')
+RequiredModules = @('AlexkUtils')
 
 # Assemblies that must be loaded prior to importing this module
 # RequiredAssemblies = @()

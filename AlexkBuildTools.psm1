@@ -6,11 +6,13 @@
         Use inside AlexkFramework.
     .COMPONENT
         AlexKUtils
+    .LINK
+        https://github.com/Alex-0293/AlexKBuildTools.git
     .NOTES
         AUTHOR  Alexk
         CREATED 29.10.20
-        MOD     04.11.20
-        VER     6
+        MOD     05.11.20
+        VER     7
 #>
 
 
@@ -21,7 +23,7 @@ Function New-ModuleMetaData {
     .DESCRIPTION
         Create new module metadata file (*.psd1).
     .EXAMPLE
-        New-ModuleMetaData -FilePath $FilePath -AuthorName $AuthorName -AuthorEmail $AuthorEmail -Description $Description -License $License [-RequiredModules $RequiredModules] [-Tags $Tags] [-LogPath $LogPath=$Global:gsScriptLogFilePath] [-PassThru $PassThru]
+        New-ModuleMetaData -FilePath $FilePath -AuthorName $AuthorName -AuthorEmail $AuthorEmail -License $License [-Description $Description] [-RequiredModules $RequiredModules] [-Tags $Tags] [-LogPath $LogPath=$Global:gsScriptLogFilePath] [-PassThru $PassThru]
     .NOTES
         AUTHOR  Alexk
         CREATED 08.04.20
@@ -39,8 +41,7 @@ Function New-ModuleMetaData {
             [Parameter( Mandatory = $true, Position = 2, HelpMessage = "Module author email." )]
             [ValidateNotNullOrEmpty()]
             [string] $AuthorEmail,
-            [Parameter( Mandatory = $true, Position = 3, HelpMessage = "Module description." )]
-            [ValidateNotNullOrEmpty()]
+            [Parameter( Mandatory = $false, Position = 3, HelpMessage = "Module description." )]
             [string] $Description,
             [Parameter( Mandatory = $true, Position = 4, HelpMessage = "Module license." )]
             [ValidateSet("Apache 2.0")]
@@ -57,8 +58,17 @@ Function New-ModuleMetaData {
 
         $res = $false
 
-        $Location     = Split-Path -path $FilePath
+        $FileExt     = Split-Path -path $FilePath -Extension
+
+        if ( $FileExt -eq ".psm1" ) {
+            $Location = Split-Path -path $FilePath
+        }
+        Else {
+            $Location = Split-Path -path (Split-Path -path $FilePath -Parent) -parent
+        }
+
         $BaseFileName = Split-Path -path $FilePath -LeafBase
+        $FileExt      = Split-Path -path $FilePath -Extension
 
         if ( !(Get-ChildItem -path $Location -File -Filter "*.psd1") ){
             if ( $FileExt -eq ".psm1" ) {
@@ -364,7 +374,7 @@ Function Get-FunctionChanges {
     .DESCRIPTION
         Get changes between two functions.
     .EXAMPLE
-        Get-FunctionChanges -Functions $Functions -PrevFunctions $PrevFunctions
+        Get-FunctionChanges [-Functions $Functions] [-PrevFunctions $PrevFunctions]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
@@ -373,11 +383,9 @@ Function Get-FunctionChanges {
     [OutputType([PsObject])]
     [CmdletBinding()]
     param (
-        [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Function to compare." )]
-        [ValidateNotNullOrEmpty()]
+        [Parameter( Mandatory = $false, Position = 0, HelpMessage = "Function to compare." )]
         [PsObject] $Functions,
-        [Parameter( Mandatory = $true, Position = 1, HelpMessage = "Function to compare." )]
-        [ValidateNotNullOrEmpty()]
+        [Parameter( Mandatory = $false, Position = 1, HelpMessage = "Function to compare." )]
         [PsObject] $PrevFunctions
     )
 
@@ -510,79 +518,106 @@ Function Get-FunctionChanges {
         return $PSO
     }
 
-    $DeletedFunctions = $PrevFunctions | Where-Object { $_.name -notin $Functions.Name }
-    $AddedFunctions   = $Functions     | Where-Object { $_.name -notin $PrevFunctions.Name }
+    if ( $PrevFunctions ) {
+        if ( $Functions ) {
+            $DeletedFunctions = $PrevFunctions | Where-Object { $_.name -notin $Functions.Name }
+            $AddedFunctions   = $Functions     | Where-Object { $_.name -notin $PrevFunctions.Name }
+        }
+        Else {
+            $DeletedFunctions = $PrevFunctions
+            $AddedFunctions   = @()
+        }
+    }
+    Else {
+        if ( $Functions ) {
+            $AddedFunctions   = $Functions
+            $DeletedFunctions = @()
+        }
+        Else {
+            $AddedFunctions   = @()
+            $DeletedFunctions = @()
+        }
+    }
+
+    if ( $Functions ) {
+        $AddedFunctions   = $Functions
+    }
+
     foreach ( $Item in $AddedFunctions ){
         $Item.IsNew = $true
     }
 
     $ChangesArray = @()
 
-    foreach ( $Function in $Functions ){
-        foreach ( $PrevFunction in $PrevFunctions ){
-            if ( ( $Function.FunctionName -eq $PrevFunction.FunctionName ) -and ( $Function.ParentFunctionName -eq $PrevFunction.ParentFunctionName ) ){
-                If ( $Function.text.trim() -ne $PrevFunction.text.trim() ){
-                    if  ( $Function.FunctionName -notin $ChangesArray.FunctionName ) {
-                        $PSO = [PSCustomObject]@{
-                            ParentFunctionName = $Function.ParentFunctionName
-                            FunctionName       = $Function.FunctionName
-                        }
+    if ( $PrevFunctions -and $Functions ) {
 
-                        if ( $Function.LineCount -ne  $PrevFunction.LineCount ){
-                            $PSO | Add-Member -NotePropertyName LineDiff -NotePropertyValue ($Function.LineCount - $PrevFunction.LineCount)
-                            $PSO | Add-Member -NotePropertyName LineCount -NotePropertyValue $Function.LineCount
-                            $PSO | Add-Member -NotePropertyName PrevLineCount -NotePropertyValue $PrevFunction.LineCount
-                        }
-                        if ( $Function.Parameters -ne  $PrevFunction.Parameters ){
-                            $Add = @()
-                            foreach ( $Item in $Function.Parameters ) {
-                                $ParamName = $Item.name.Extent.Text
-                                if ( !( $ParamName -in $PrevFunction.Parameters.name.Extent.Text ) ){
-                                    if ( $Item.DefaultValue ){
-                                        $Add += "[$($Item.StaticType)] $ParamName = $($Item.DefaultValue)"
+
+        foreach ( $Function in $Functions ){
+            foreach ( $PrevFunction in $PrevFunctions ){
+                if ( ( $Function.FunctionName -eq $PrevFunction.FunctionName ) -and ( $Function.ParentFunctionName -eq $PrevFunction.ParentFunctionName ) ){
+                    If ( $Function.text.trim() -ne $PrevFunction.text.trim() ){
+                        if  ( $Function.FunctionName -notin $ChangesArray.FunctionName ) {
+                            $PSO = [PSCustomObject]@{
+                                ParentFunctionName = $Function.ParentFunctionName
+                                FunctionName       = $Function.FunctionName
+                            }
+
+                            if ( $Function.LineCount -ne  $PrevFunction.LineCount ){
+                                $PSO | Add-Member -NotePropertyName LineDiff -NotePropertyValue ($Function.LineCount - $PrevFunction.LineCount)
+                                $PSO | Add-Member -NotePropertyName LineCount -NotePropertyValue $Function.LineCount
+                                $PSO | Add-Member -NotePropertyName PrevLineCount -NotePropertyValue $PrevFunction.LineCount
+                            }
+                            if ( $Function.Parameters -ne  $PrevFunction.Parameters ){
+                                $Add = @()
+                                foreach ( $Item in $Function.Parameters ) {
+                                    $ParamName = $Item.name.Extent.Text
+                                    if ( !( $ParamName -in $PrevFunction.Parameters.name.Extent.Text ) ){
+                                        if ( $Item.DefaultValue ){
+                                            $Add += "[$($Item.StaticType)] $ParamName = $($Item.DefaultValue)"
+                                        }
+                                        Else{
+                                            $Add += "[$($Item.StaticType)] $ParamName"
+                                        }
                                     }
-                                    Else{
-                                        $Add += "[$($Item.StaticType)] $ParamName"
+                                }
+                                $Rem = @()
+                                foreach ( $Item in $PrevFunction.Parameters ) {
+                                    $ParamName = $Item.name.Extent.Text
+                                    if ( !( $ParamName -in $Function.Parameters.name.Extent.Text ) ){
+                                        $Rem += "[$($Item.StaticType)] $ParamName"
                                     }
                                 }
-                            }
-                            $Rem = @()
-                            foreach ( $Item in $PrevFunction.Parameters ) {
-                                $ParamName = $Item.name.Extent.Text
-                                if ( !( $ParamName -in $Function.Parameters.name.Extent.Text ) ){
-                                    $Rem += "[$($Item.StaticType)] $ParamName"
-                                }
-                            }
-                            $Changed = @()
-                            $Changed = Test-Changes -PrevFunction $PrevFunction -Function $Function
+                                $Changed = @()
+                                $Changed = Test-Changes -PrevFunction $PrevFunction -Function $Function
 
-                            if ( $Add ) {
-                                $PSO | Add-Member -NotePropertyName "ParametersAdd" -NotePropertyValue $Add
-                            }
-                            if ( $Rem ) {
-                                $PSO | Add-Member -NotePropertyName "ParametersRemove" -NotePropertyValue $Rem
-                            }
-                            if ( $Changed ) {
-                                if ( $Changed.Changed ){
-                                    $PSO | Add-Member -NotePropertyName "ParametersChanged" -NotePropertyValue $Changed.Changed
+                                if ( $Add ) {
+                                    $PSO | Add-Member -NotePropertyName "ParametersAdd" -NotePropertyValue $Add
                                 }
-                                if ( $Changed.Add ){
-                                    $PSO | Add-Member -NotePropertyName "AttributesAdded" -NotePropertyValue $Changed.Add
+                                if ( $Rem ) {
+                                    $PSO | Add-Member -NotePropertyName "ParametersRemove" -NotePropertyValue $Rem
                                 }
-                                if ( $Changed.Rem ){
-                                    $PSO | Add-Member -NotePropertyName "AttributesRemoved" -NotePropertyValue $Changed.Rem
+                                if ( $Changed ) {
+                                    if ( $Changed.Changed ){
+                                        $PSO | Add-Member -NotePropertyName "ParametersChanged" -NotePropertyValue $Changed.Changed
+                                    }
+                                    if ( $Changed.Add ){
+                                        $PSO | Add-Member -NotePropertyName "AttributesAdded" -NotePropertyValue $Changed.Add
+                                    }
+                                    if ( $Changed.Rem ){
+                                        $PSO | Add-Member -NotePropertyName "AttributesRemoved" -NotePropertyValue $Changed.Rem
+                                    }
+                                    $Function.IsChanged =  $true
                                 }
-                                $Function.IsChanged =  $true
-                            }
 
-                            if ( $Add -or $Rem -or $Changed ) {
-                                $PSO | Add-Member -NotePropertyName "Parameters"     -NotePropertyValue $Function.Parameters
-                                $PSO | Add-Member -NotePropertyName "PrevParameters" -NotePropertyValue $PrevFunction.Parameters
+                                if ( $Add -or $Rem -or $Changed ) {
+                                    $PSO | Add-Member -NotePropertyName "Parameters"     -NotePropertyValue $Function.Parameters
+                                    $PSO | Add-Member -NotePropertyName "PrevParameters" -NotePropertyValue $PrevFunction.Parameters
 
+                                }
                             }
-                        }
-                        if ( ( $PSO.psobject.Properties | Measure-Object ).count -gt 2 ){
-                            $ChangesArray       += $PSO
+                            if ( ( $PSO.psobject.Properties | Measure-Object ).count -gt 2 ){
+                                $ChangesArray       += $PSO
+                            }
                         }
                     }
                 }
@@ -597,6 +632,7 @@ Function Get-FunctionChanges {
         ChangedFunctions  = $ChangesArray
         FunctionList      = $Functions
     }
+
     return $res
 }
 function Get-CommitInfo {
@@ -619,7 +655,15 @@ function Get-CommitInfo {
         [ValidateNotNullOrEmpty()]
         [string] $FilePath
     )
-    $Location = Split-Path -path $FilePath
+    $FileExt     = Split-Path -path $FilePath -Extension
+
+    if ( $FileExt -eq ".psm1" ) {
+        $Location = Split-Path -path $FilePath
+    }
+    Else {
+        $Location = Split-Path -path (Split-Path -path $FilePath -Parent) -parent
+    }
+
     $FileName = Split-Path -path $FilePath -Leaf
 
     Set-Location -path $Location
@@ -780,8 +824,20 @@ function Get-ChangeLog {
             Return $Data
         }
     }
-    $Location = Split-Path -path $FilePath
-    $FileName = Split-Path -path $FilePath -Leaf
+    $FileExt     = Split-Path -path $FilePath -Extension
+
+    if ( $FileExt -eq ".psm1" ) {
+        $Location = Split-Path -path $FilePath
+        $FileName = Split-Path -path $FilePath -Leaf
+        $PrevFile = "$Location\tmp.prev.$FileName"
+    }
+    Else {
+        $Location = Split-Path -path (Split-Path -path $FilePath -Parent) -parent
+
+        $FileName = "$($Global:gsSCRIPTSFolder)\$(Split-Path -path $FilePath -Leaf)"
+        $PrevFile = "$Location\$($Global:gsSCRIPTSFolder)\tmp.prev.$(Split-Path -path $FilePath -Leaf)"
+    }
+
 
     Set-Location -path $Location
 
@@ -792,7 +848,6 @@ function Get-ChangeLog {
     if ( $LastGitCommitHash ) {
         Add-ToLog -Message "Getting change log for [$FilePath] and previous version [$($LastCommitData.Date)] with commit message [$($LastCommitData.Message)]." -logFilePath $LogPath -Display -Status "info"
         $Prev = ( & git show "$LastGitCommitHash`:./$FileName" )
-        $PrevFile = "$Location\tmp.prev.$FileName"
         out-file -FilePath $PrevFile -InputObject $Prev
         $PrevFunctionDetails = Get-FunctionDetails $PrevFile
         $FunctionDetails     = Get-FunctionDetails $FilePath
@@ -912,8 +967,14 @@ function Get-ModuleVersion {
     # C build
     # D revision
 
-    $FileExt  = Split-Path -Path $FilePath -Extension
-    $Location = Split-Path -path $FilePath -Parent
+    $FileExt     = Split-Path -path $FilePath -Extension
+
+    if ( $FileExt -eq ".psm1" ) {
+        $Location = Split-Path -path $FilePath
+    }
+    Else {
+        $Location = Split-Path -path (Split-Path -path $FilePath -Parent) -parent
+    }
     $FileName = Split-Path -path $FilePath -LeafBase
 
     switch ( $FileExt.ToLower() ) {
@@ -957,7 +1018,14 @@ Function Start-FunctionTest {
         [string] $LogPath = $Global:gsScriptLogFilePath
     )
 
-    $Location = split-path -Path $FilePath -Parent
+    $FileExt     = Split-Path -path $FilePath -Extension
+
+    if ( $FileExt -eq ".psm1" ) {
+        $Location = Split-Path -path $FilePath
+    }
+    Else {
+        $Location = Split-Path -path (Split-Path -path $FilePath -Parent) -parent
+    }
     $File     = split-path -Path $FilePath -LeafBase
 
     # import module before creating the object
@@ -1146,22 +1214,31 @@ Function Remove-RightSpace {
 
     foreach( $line in $content ) {
         if ( $line -ne $line.TrimEnd() ){
-            $NewContent += $line.TrimEnd()
+            $NewContent += $line.TrimEnd() + "`n"
             $HasChanged = $True
         }
         Else {
-            $NewContent += $line
+            $NewContent += $line + "`n"
         }
     }
-
+    $lastLine = ($NewContent[($NewContent.count -1)]).Replace("`n","")
+    $NewContent = $NewContent[0..($NewContent.count -2)]
+    $NewContent = $NewContent + $lastLine
     If ( $HasChanged ){
 
         if ( $DebugMode ){
-            $Location     = Split-Path -path $FilePath
+            $FileExt     = Split-Path -path $FilePath -Extension
+
+            if ( $FileExt -eq ".psm1" ) {
+                $Location = Split-Path -path $FilePath
+            }
+            Else {
+                $Location = Split-Path -path (Split-Path -path $FilePath -Parent) -parent
+            }
             $FileName     = Split-Path -path $FilePath -Leaf
             $TmpFilename  = "$Location\tmp.$FileName"
 
-            $NewContent | Out-File -FilePath $TmpFilename -force
+            $NewContent | Out-File -FilePath $TmpFilename -NoNewline -force
             Open-InVscode -ReuseOpenWindow -Compare -FilePath $FilePath -FilePath1 $TmpFilename
             $Answer = ""
             do {
@@ -1169,7 +1246,7 @@ Function Remove-RightSpace {
             }  Until  ( ($Answer.ToLower() -ne "y") -or ($Answer.ToLower() -ne "n"))
 
             if ( $Answer.ToLower() -eq "y" ){
-                $NewContent | Out-File -FilePath $FilePath -NoNewline -force
+                $NewContent | Out-File -FilePath $FilePath  -NoNewline  -force
                 Add-ToLog -Message "Removed right spaces for [$FilePath]"  -logFilePath $LogPath -Display -Status "info"
                 Remove-Item -path $TmpFilename -Force
             }
@@ -1179,7 +1256,7 @@ Function Remove-RightSpace {
             }
         }
         Else {
-           $NewContent | Out-File -FilePath $FilePath -NoNewline -Force
+           $NewContent | Out-File -FilePath $FilePath  -NoNewline  -Force
         }
         Add-ToLog -Message "Removed right spaces for [$FilePath]"  -logFilePath $LogPath -Display -Status "info"
     }
@@ -1285,8 +1362,8 @@ Function Update-HelpContent {
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
-        MOD     04.11.20
-        VER     4
+        MOD     05.11.20
+        VER     5
 #>
     [OutputType([bool])]
     [CmdletBinding()]
@@ -1398,7 +1475,7 @@ Function Update-HelpContent {
         .DESCRIPTION
             Internal. Generate new description from AST.
         .EXAMPLE
-            Get-NewDescription -Function $Function [-FilePath $FilePath]
+            Get-NewDescription -Function $Function -FilePath $FilePath
         .NOTES
             AUTHOR  Alexk
             CREATED 02.11.20
@@ -1410,17 +1487,25 @@ Function Update-HelpContent {
         Param(
             [Parameter( Mandatory = $true, Position = 0, HelpMessage = "AST Function." )]
             $Function,
+            [Parameter( Mandatory = $true, Position = 1, HelpMessage = "Powershell file path." )]
             [string] $FilePath
         )
 
         if ( $FilePath ) {
-            $Location        = Split-Path -path $FilePath
+            $FileExt     = Split-Path -path $FilePath -Extension
+
+            if ( $FileExt -eq ".psm1" ) {
+                $Location = Split-Path -path $FilePath
+            }
+            Else {
+                $Location = Split-Path -path (Split-Path -path $FilePath -Parent) -parent
+            }
             $DescriptionPath = "$Location\$($Global:gsTESTSFolder)\Functions.csv"
 
             if ( test-path -path $DescriptionPath ) {
                 $FuncArray = Import-Csv -Path $DescriptionPath -Delimiter ";"
 
-                $FunctionDescription = ($FuncArray | Where-Object { $_.FunctionName -eq $Function.FunctionName }).Description
+                $FunctionDescription = ($FuncArray | Where-Object { ($_.FunctionName -eq $Function.FunctionName) -and ($_.ParentFunctionName -eq $Function.ParentFunctionName) }).Description
             }
         }
         if ( $FunctionDescription ){
@@ -1657,6 +1742,39 @@ Function Update-HelpContent {
 
         return $res
     }
+    Function Get-NewLink {
+    <#
+        .SYNOPSIS
+            Get new links
+        .DESCRIPTION
+            Internal. Generate new links from AST.
+        .EXAMPLE
+            Get-NewLink -Function $Function -FilePath $FilePath
+        .NOTES
+            AUTHOR  Alexk
+            CREATED 06.11.20
+            VER     1
+    #>
+        [OutputType([string])]
+        [CmdletBinding()]
+        Param(
+            [Parameter( Mandatory = $true, Position = 0, HelpMessage = "AST Function." )]
+            $Function,
+            [Parameter( Mandatory = $true, Position = 1, HelpMessage = "Powershell file path." )]
+            [string] $FilePath
+        )
+
+        $Res = ""
+        $Links = $Function.HelpContent.Links
+        if ( $Links ) {
+            $res = $Links.trim()
+        }
+        Else {
+            $res = Get-ProjectOrigin -FilePath $FilePath
+        }
+
+        return $res
+    }
     Function Get-UpdatedHelpContent {
     <#
         .SYNOPSIS
@@ -1664,7 +1782,7 @@ Function Update-HelpContent {
         .DESCRIPTION
             Internal. Generate new help content.
         .EXAMPLE
-            Get-UpdatedHelpContent -Function $Function -FilePath $FilePath [-Role $Role] [-RemoteHelpRunspace $RemoteHelpRunspace] [-Parameters $Parameters] [-Notes $Notes] [-MamlHelpFile $MamlHelpFile] [-Links $Links] [-Inputs $Inputs] [-Functionality $Functionality] [-ForwardHelpTargetName $ForwardHelpTargetName] [-ForwardHelpCategory $ForwardHelpCategory] [-Examples $Examples] [-Description $Description] [-Component $Component] [-Synopsis $Synopsis] [-UpdateVersion $UpdateVersion]
+            Get-UpdatedHelpContent -Function $Function -FilePath $FilePath [-Synopsis $Synopsis] [-Role $Role] [-RemoteHelpRunspace $RemoteHelpRunspace] [-Parameters $Parameters] [-Notes $Notes] [-MamlHelpFile $MamlHelpFile] [-Link $Link] [-Inputs $Inputs] [-Functionality $Functionality] [-ForwardHelpTargetName $ForwardHelpTargetName] [-ForwardHelpCategory $ForwardHelpCategory] [-Examples $Examples] [-Description $Description] [-Component $Component] [-UpdateVersion $UpdateVersion] [-CreateEmpty $CreateEmpty]
         .NOTES
             AUTHOR  Alexk
             CREATED 02.11.20
@@ -1683,30 +1801,32 @@ Function Update-HelpContent {
             [switch] $Description,
             [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate Examples." )]
             [switch] $Examples,
-            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate ForwardHelpCategory." )]
+            [Parameter( Mandatory = $false, Position = 5, HelpMessage = "Recreate ForwardHelpCategory." )]
             [switch] $ForwardHelpCategory,
-            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate ForwardHelpTargetName." )]
+            [Parameter( Mandatory = $false, Position = 6, HelpMessage = "Recreate ForwardHelpTargetName." )]
             [switch] $ForwardHelpTargetName,
-            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate Functionality." )]
+            [Parameter( Mandatory = $false, Position = 7, HelpMessage = "Recreate Functionality." )]
             [switch] $Functionality,
-            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate Inputs." )]
+            [Parameter( Mandatory = $false, Position = 8, HelpMessage = "Recreate Inputs." )]
             [switch] $Inputs,
-            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate Links." )]
-            [switch] $Links,
-            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate MamlHelpFile." )]
+            [Parameter( Mandatory = $false, Position = 9, HelpMessage = "Recreate Links." )]
+            [switch] $Link,
+            [Parameter( Mandatory = $false, Position = 10, HelpMessage = "Recreate MamlHelpFile." )]
             [switch] $MamlHelpFile,
-            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate Notes." )]
+            [Parameter( Mandatory = $false, Position = 11, HelpMessage = "Recreate Notes." )]
             [switch] $Notes,
-            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate Parameters." )]
+            [Parameter( Mandatory = $false, Position = 12, HelpMessage = "Recreate Parameters." )]
             [switch] $Parameters,
-            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate RemoteHelpRunspace." )]
+            [Parameter( Mandatory = $false, Position = 13, HelpMessage = "Recreate RemoteHelpRunspace." )]
             [switch] $RemoteHelpRunspace,
-            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate Role." )]
+            [Parameter( Mandatory = $false, Position = 14, HelpMessage = "Recreate Role." )]
             [switch] $Role,
-            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Recreate Synopsis." )]
+            [Parameter( Mandatory = $false, Position = 15, HelpMessage = "Recreate Synopsis." )]
             [switch] $Synopsis,
-            [Parameter( Mandatory = $false, Position = 4, HelpMessage = "Generate new version." )]
-            [switch] $UpdateVersion
+            [Parameter( Mandatory = $false, Position = 16, HelpMessage = "Generate new version." )]
+            [switch] $UpdateVersion,
+            [Parameter( Mandatory = $false, Position = 17, HelpMessage = "Generate section with no data." )]
+            [switch] $CreateEmpty
         )
 
         $HelpContent = $Function.HelpContent
@@ -1736,15 +1856,21 @@ Function Update-HelpContent {
         if ( $Component ){
             $NewComponent = Get-NewComponent -Function $Function
         }
+        if ( $Link ){
+            $NewLink = Get-NewLink -Function $Function -FilePath $FilePath
+        }
 
         $Base = $Function.StartColumnNumber - 1
+        if ( $Base -lt 0 ){
+            $Base = 0
+        }
 
         $ItemLevel       =  0
         $Indent          =  4
         $NewHelpContent  =  @()
         $NewHelpContent += "$(''.PadLeft($Base + $ItemLevel * $Indent , " "))<#"
 
-        $Fields = "Synopsis", "Description", "Example", "Component", "ForwardHelpCategory", "ForwardHelpTargetName", "Functionality", "Inputs", "Links", "MamlHelpFile", "Notes", "Parameters", "RemoteHelpRunspace", "Role"
+        $Fields = "Synopsis", "Description", "Example", "Component", "ForwardHelpCategory", "ForwardHelpTargetName", "Functionality", "Inputs", "Link", "MamlHelpFile", "Notes", "Parameters", "RemoteHelpRunspace", "Role"
         $ItemLevel ++
         foreach ( $Field in  $fields ){
             $NewField   = Get-Variable -name "New$Field" -ErrorAction SilentlyContinue
@@ -1776,6 +1902,31 @@ Function Update-HelpContent {
                     $NewHelpContent += "$(''.PadLeft($Base + $ItemLevel * $Indent , " ")).$($Field.ToUpper())"
                     $NewHelpContent += $SavedContent
                 }
+                Else {
+                    if ( $CreateEmpty ) {
+                        switch ( $Field ) {
+                            "link" {
+                                $NewHelpContent += "$(''.PadLeft($Base + $ItemLevel * $Indent , " ")).$($Field.ToUpper())"
+                            }
+                            "synopsis" {
+                                if ( $Synopsis ){
+                                    $NewHelpContent += "$(''.PadLeft($Base + $ItemLevel * $Indent , " ")).$($Field.ToUpper())"
+                                }
+                            }
+                            "description" {
+                                if ( $Description ){
+                                    $NewHelpContent += "$(''.PadLeft($Base + $ItemLevel * $Indent , " ")).$($Field.ToUpper())"
+                                }
+                            }
+                            "examples" {
+                                if ( $Examples ){
+                                    $NewHelpContent += "$(''.PadLeft($Base + $ItemLevel * $Indent , " ")).$($Field.ToUpper())"
+                                }
+                            }
+                            Default {}
+                        }
+                    }
+                }
             }
         }
         $ItemLevel --
@@ -1794,7 +1945,8 @@ Function Update-HelpContent {
         .NOTES
             AUTHOR  Alexk
             CREATED 02.11.20
-            VER     1
+            MOD     05.11.20
+            VER     2
     #>
         [CmdletBinding()]
         Param(
@@ -1808,8 +1960,13 @@ Function Update-HelpContent {
         }
         if ( $Function.HelpContent ){
             if ( $Function.FunctionName ) {
-                $HelpContent.Function    = $Function.text.split("{")[0] + "{"
-                $SpaceCounter            = $Function.text.split($HelpContent.Function)[1].split("<#")[0].length - 2
+                $TextLengthPreview    = Get-TextLengthPreview -text $Function.text -RemoveCR
+                $HelpContent.Function = $Function.text.split("{")[0] + "{"
+                $SpaceCounter         = $TextLengthPreview[($TextLengthPreview | select-string  -pattern "<#")[0].LineNumber-1].length - 2
+                #$Function.text.split($HelpContent.Function)[1].split("<#")[0].length - 1
+                # if ( $SpaceCounter -lt 0 ){
+                #     $SpaceCounter = 0
+                # }
                 $HelpContent.HelpContent = (''.PadLeft( $SpaceCounter, " ")) + "<#" + $Function.text.split("<#")[1].split("#>")[0] + "#>"
             }
             Else {
@@ -1818,7 +1975,12 @@ Function Update-HelpContent {
             }
         }
         Else {
-            $HelpContent.Function = $Function.text.split("{")[0] + "{"
+            if ( $Function.FunctionName ) {
+                $HelpContent.Function = $Function.text.split("{")[0] + "{"
+            }
+            Else {
+                $HelpContent.Function = ""
+            }
         }
         #write-host @($HelpContent.HelpContent)
         Return $HelpContent
@@ -1830,8 +1992,16 @@ Function Update-HelpContent {
     #$FunctionDetails = Get-FunctionDetails -FilePath $FilePath
     #$FileContent     = Get-Content -path $Filepath
 
+    $FileExt     = Split-Path -path $FilePath -Extension
+
+    if ( $FileExt -eq ".psm1" ) {
+        $Location = Split-Path -path $FilePath
+    }
+    Else {
+        $Location = Split-Path -path (Split-Path -path $FilePath -Parent) -parent
+    }
+
     if ( $FilePath ) {
-        $Location        = Split-Path -path $FilePath
         $DescriptionPath = "$Location\$($Global:gsTESTSFolder)\functions.csv"
         if ( !( test-path -path $DescriptionPath ) ){
             $Changes.FunctionList | Select-Object ParentFunctionName, FunctionName, Description | Export-Csv -path $DescriptionPath -Delimiter ";"
@@ -1851,10 +2021,10 @@ Function Update-HelpContent {
         }
 
         if ( ( $Changes.ChangedFunctions ) -or ( $Changes.Added ) -or ( $Changes.Deleted ) ){
-            $UpdatedHelpContent = Get-UpdatedHelpContent -Function $PSO -FilePath $FilePath -Examples -Description -Notes -synopsis -Component -UpdateVersion
+            $UpdatedHelpContent = Get-UpdatedHelpContent -Function $PSO -FilePath $FilePath -Examples -Description -Notes -synopsis -Component -link -UpdateVersion -CreateEmpty
         }
         Else {
-            $UpdatedHelpContent = Get-UpdatedHelpContent -Function $PSO -FilePath $FilePath -Examples -Description -Notes -synopsis -Component
+            $UpdatedHelpContent = Get-UpdatedHelpContent -Function $PSO -FilePath $FilePath -Examples -Description -Notes -synopsis -Component -link -CreateEmpty
         }
         $CurrentHelpContent = Get-CurrentHelpContent -Function $PSO
 
@@ -1873,7 +2043,7 @@ Function Update-HelpContent {
         Else {
             $CurrentHelpContent   = $CurrentHelpContent.function
             $NewHelpContent       = @()
-            $NewHelpContent      += $CurrentHelpContent
+            #$NewHelpContent      += $CurrentHelpContent
             $NewHelpContent      += $UpdatedHelpContent
             $ReplaceData.Function = $PSO.FunctionName
             $ReplaceData.Find     = $CurrentHelpContent
@@ -1920,27 +2090,53 @@ Function Update-HelpContent {
     #$FileContent     = $FileContent.Replace( $CurrentHelpContent, $NewHelpContent )
     $FileContent      = Get-Content $FilePath -Raw
     $SavedFileContent = $FileContent.Clone()
+
     foreach ( $item in $ReplaceArray ){
         $replace     = $item.replace -join "`n"
         $find        = $item.find
-        if ( ($replace.contains("<#") -and $replace.contains("#>")) -and ($find.contains("<#") -and $find.contains("#>") -or ( $find -ne "" )) ) {
-            $Res = ([regex]::Matches($FileContent, [regex]::Escape($Find))).count
-            if ( $Res -eq 1 ) {
-                $FileContent = $FileContent -replace [regex]::Escape($Find), $replace
+        if ( $find ){
+            if ( ($replace.contains("<#") -and $replace.contains("#>")) -and ($find.contains("<#") -and $find.contains("#>") -or ( $find -ne "" )) ) {
+                $FindRes = ([regex]::Matches($FileContent, [regex]::Escape($Find))).count
+                if ( $FindRes -eq 1 ) {
+                    $FileContent = $FileContent -replace [regex]::Escape($Find), $replace
+                }
+                Else {
+                    if ( $FindRes -eq 0 ){
+                        Add-ToLog -Message "String: `n$Find`nNot found !"  -logFilePath $LogPath -Display -Status "Error"
+                    }
+                    Else {
+                        Add-ToLog -Message "Found multiple [$FindRes] string: `n$Find!"  -logFilePath $LogPath -Display -Status "Error"
+                    }
+                    $res = $False
+                }
             }
             Else {
-                Add-ToLog -Message "Found multiple [$Res] string: `n$Find!"  -logFilePath $LogPath -Display -Status "Error"
+                Add-ToLog -Message "Found unconditional parameters for replacement find [$find] replace [$replace]!"  -logFilePath $LogPath -Display -Status "Error"
                 $res = $False
             }
         }
         Else {
-            Add-ToLog -Message "Found unconditional parameters for replacement find [$find] replace [$replace]!"  -logFilePath $LogPath -Display -Status "Error"
-            $res = $False
+            if ( $FileContent ){
+                if ( $Replace ){
+                    $FileContent = $Replace + "`n`n`n" + $FileContent
+                }
+                Else {
+                    Add-ToLog -Message "Replace and find not set!"  -logFilePath $LogPath -Display -Status "Error"
+                }
+            }
         }
     }
 
     $FileContent = $FileContent.TrimEnd()
-    $Location    = Split-Path -path $FilePath
+    $FileExt     = Split-Path -path $FilePath -Extension
+
+    if ( $FileExt -eq ".psm1" ) {
+        $Location = Split-Path -path $FilePath
+    }
+    Else {
+        $Location = Split-Path -path (Split-Path -path $FilePath -Parent) -parent
+    }
+
     $FileName    = Split-Path -path $FilePath -Leaf
     $TmpFilename = "$Location\tmp.$FileName"
     $FileContent | Out-File -FilePath $TmpFilename -force -Encoding utf8BOM -NoNewline
@@ -1971,6 +2167,7 @@ Function Update-HelpContent {
     }
     Else {
         Add-ToLog -Message "Nothing to update for [$FilePath]"  -logFilePath $LogPath -Display -Status "info"
+
     }
     Remove-Item -path $TmpFilename -Force
 
@@ -1983,7 +2180,7 @@ Function Update-ModuleMetaData {
     .DESCRIPTION
         Update module metadata file (*.psd1).
     .EXAMPLE
-        Update-ModuleMetaData -FilePath $FilePath -Changes $Changes -CommitMessage $CommitMessage -AuthorName $AuthorName -AuthorEmail $AuthorEmail -ProjectStartYear $ProjectStartYear [-LogPath $LogPath=$Global:gsScriptLogFilePath]
+        Update-ModuleMetaData -FilePath $FilePath -Changes $Changes -CommitMessage $CommitMessage -AuthorName $AuthorName -AuthorEmail $AuthorEmail -ProjectStartYear $ProjectStartYear -License $License [-LogPath $LogPath=$Global:gsScriptLogFilePath]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
@@ -1995,17 +2192,20 @@ Function Update-ModuleMetaData {
         [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Powershell file path." )]
         [ValidateNotNullOrEmpty()]
         [string] $FilePath,
-        [Parameter( Mandatory = $true, Position = 3, HelpMessage = "Change data." )]
+        [Parameter( Mandatory = $true, Position = 1, HelpMessage = "Change data." )]
         [PsObject] $Changes,
-        [Parameter( Mandatory = $true, Position = 3, HelpMessage = "Git commit message." )]
+        [Parameter( Mandatory = $true, Position = 2, HelpMessage = "Git commit message." )]
         [string] $CommitMessage,
         [Parameter( Mandatory = $true, Position = 3, HelpMessage = "Author name." )]
         [string] $AuthorName,
-        [Parameter( Mandatory = $true, Position = 3, HelpMessage = "Author email." )]
+        [Parameter( Mandatory = $true, Position = 4, HelpMessage = "Author email." )]
         [string] $AuthorEmail,
-        [Parameter( Mandatory = $true, Position = 3, HelpMessage = "Year, project was started." )]
+        [Parameter( Mandatory = $true, Position = 5, HelpMessage = "Year, project was started." )]
         [string] $ProjectStartYear,
-        [Parameter( Mandatory = $false, Position = 3, HelpMessage = "Common log file path." )]
+        [Parameter( Mandatory = $true, Position = 6, HelpMessage = "Module license." )]
+        [ValidateSet("Apache 2.0")]
+        [string] $License,
+        [Parameter( Mandatory = $false, Position = 7, HelpMessage = "Common log file path." )]
         [string] $LogPath = $Global:gsScriptLogFilePath
     )
     <#
@@ -2019,6 +2219,7 @@ Function Update-ModuleMetaData {
     $Res = $false
     $Location     = Split-Path -path $FilePath
     $BaseFileName = Split-Path -path $FilePath -LeafBase
+    $FileExt      = Split-Path -path $FilePath -Extension
 
     if ( $FileExt -eq ".psm1" ) {
         import-module -name $BaseFileName -force
@@ -2046,7 +2247,15 @@ Function Update-ModuleMetaData {
     }
     $UpdatedVersion = ($CodeVersion.Major, $Minor, $Build, $Revision) -join "."
     $ReleaseNotes   = $CommitMessage
-    $Copyright      = "(c) $AuthorName($AuthorEmail) $ProjectStartYear-$(get-date -Format "yyyy"). All rights reserved."
+    switch ( $license ) {
+        "Apache 2.0" {
+            $Copyright = "Copyright (c) $AuthorName($AuthorEmail) $(get-date -Format "yyyy"), licensed under Apache 2.0 License."
+            $LicenseUri = "http://www.apache.org/licenses/LICENSE-2.0.html"
+        }
+        Default {
+            $Copyright = "Copyright (c) $AuthorName($AuthorEmail) $(get-date -Format "yyyy"). All rights reserved."
+        }
+    }
 
     if ( $Module ) {
         $ModuleParameters = @{}
@@ -2054,6 +2263,7 @@ Function Update-ModuleMetaData {
         $ModuleParameters += @{ Path               = "$Location\$BaseFileName.psd1" }
         $ModuleParameters += @{ ModuleVersion      = $UpdatedVersion }
         $ModuleParameters += @{ Copyright          = $Copyright }
+        $ModuleParameters += @{ LicenseUri         = $LicenseUri }
         $ModuleParameters += @{ ReleaseNotes       = $ReleaseNotes }
         $ModuleParameters += @{ FunctionsToExport  = '*'}
 
@@ -2088,7 +2298,16 @@ Function Get-ChangeStatus {
     $LastCommitInfo = Get-CommitInfo -FilePath $FilePath
 
     $Res = $True
-    $Location       = Split-Path -path $FilePath
+
+    $FileExt     = Split-Path -path $FilePath -Extension
+
+    if ( $FileExt -eq ".psm1" ) {
+        $Location = Split-Path -path $FilePath
+    }
+    Else {
+        $Location = Split-Path -path (Split-Path -path $FilePath -Parent) -parent
+    }
+
     $ChangeFilePath = "$Location\$($Global:gsTESTSFolder)\VersionAppliance.csv"
 
     if ( test-path -path $ChangeFilePath ){
@@ -2138,7 +2357,15 @@ Function Set-ChangeStatus {
 
     $LastCommitInfo = Get-CommitInfo -FilePath $FilePath
 
-    $Location       = Split-Path -path $FilePath -Parent
+    $FileExt     = Split-Path -path $FilePath -Extension
+
+    if ( $FileExt -eq ".psm1" ) {
+        $Location = Split-Path -path $FilePath
+    }
+    Else {
+        $Location = Split-Path -path (Split-Path -path $FilePath -Parent) -parent
+    }
+
     $ChangeFilePath = "$Location\$($Global:gsTESTSFolder)\VersionAppliance.csv"
     $NewData = @()
     if ( test-path -path $ChangeFilePath ){
@@ -2194,12 +2421,19 @@ Function Update-EmptySettings {
 
     Add-ToLog -Message "Start creating empty setting file for [$FilePath]"  -logFilePath $LogPath -Display -Status "info"
 
-    $Location     = Split-Path -path $FilePath
+    $FileExt     = Split-Path -path $FilePath -Extension
+
+    if ( $FileExt -eq ".psm1" ) {
+        $Location = Split-Path -path $FilePath
+    }
+    Else {
+        $Location = Split-Path -path (Split-Path -path $FilePath -Parent) -parent
+    }
 
     $EmptySettingsCreatorName = "EmptySettingsCreator"
     $EmptySettingsCreatorPath = "$($Global:gsProjectServicesFolderPath)\$EmptySettingsCreatorName\$Global:gsSCRIPTSFolder\$EmptySettingsCreatorName.ps1"
 
-    . $EmptySettingsCreatorPath -ProjectPath $Location -InitGlobal $false -InitLocal $false
+    . $EmptySettingsCreatorPath -ProjectPath $Location -InitGlobal $false -InitLocal $true
     Add-ToLog -Message "Finish creating empty setting file for [$FilePath]"  -logFilePath $LogPath -Display -Status "info"
     return $true
 }
@@ -2400,7 +2634,15 @@ Function Get-ProjectGitStatus {
         [string] $FilePath
     )
 
-    $Location = Split-Path -path $FilePath -Parent
+    $FileExt     = Split-Path -path $FilePath -Extension
+
+    if ( $FileExt -eq ".psm1" ) {
+        $Location = Split-Path -path $FilePath
+    }
+    Else {
+        $Location = Split-Path -path (Split-Path -path $FilePath -Parent) -parent
+    }
+
     Set-Location $Location
 
     $GitStatus = ( & git status )
@@ -2470,45 +2712,68 @@ Function Invoke-GitCommit {
     .DESCRIPTION
         Invoke git commit.
     .EXAMPLE
-        Invoke-GitCommit -FilePath $FilePath -CommitMessage $CommitMessage [-CommitedFileList $CommitedFileList] [-Push $Push] [-PassThru $PassThru]
+        Invoke-GitCommit -FilePath $FilePath -CommitMessage $CommitMessage [-CommittedFileList $CommittedFileList] [-BranchName $BranchName="master"] [-Push $Push] [-PassThru $PassThru]
     .NOTES
         AUTHOR  Alexk
         CREATED 02.11.20
-        VER     1
+        MOD     05.11.20
+        VER     2
 #>
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true, Position = 0, HelpMessage = "Script file path." )]
         [string] $FilePath,
         [Parameter(Mandatory = $false, Position = 1, HelpMessage = "Path to committed files." )]
-        [string[]] $CommitedFileList,
+        [string[]] $CommittedFileList,
         [Parameter(Mandatory = $true, Position = 2, HelpMessage = "Commit message." )]
+        [ValidateLength(1,50)]
         [string] $CommitMessage,
-        [Parameter(Mandatory = $false, Position = 2, HelpMessage = "Push commit." )]
+        [Parameter(Mandatory = $false, Position = 3, HelpMessage = "Branch name." )]
+        [string] $BranchName = "master",
+        [Parameter(Mandatory = $false, Position = 4, HelpMessage = "Push commit." )]
         [switch] $Push,
-        [Parameter(Mandatory = $false, Position = 2, HelpMessage = "Return object." )]
+        [Parameter(Mandatory = $false, Position = 5, HelpMessage = "Return object." )]
         [switch] $PassThru
     )
 
-    $Location = Split-Path -path $FilePath -Parent
-    Set-Location $Location
+    $FileExt     = Split-Path -path $FilePath -Extension
 
-    if ( $CommitedFileList ){
-        $AddFiles         = $CommitedFileList -join ", "
-        $AddFilesToCommit = (& git.exe add $AddFiles)
+    if ( $FileExt -eq ".psm1" ) {
+        $Location = Split-Path -path $FilePath
     }
     Else {
-        $AddFilesToCommit = (& git.exe add . --verbose )
+        $Location = Split-Path -path (Split-Path -path $FilePath -Parent) -parent
+    }
+    Set-Location $Location
+
+    if ( $CommittedFileList ){
+        $AddFilesToCommit = Invoke-GitAdd -FilePath $FilePath -AddFiles $CommittedFileList
+    }
+    Else {
+        $AddFilesToCommit = Invoke-GitAdd -FilePath $FilePath
     }
 
-    $Commit = (& git.exe commit -m $CommitMessage )
+    $CurrentBranch = Get-CurrentGitBranch -FilePath $FilePath
+    #$Branch   = (& git branch "`"$BranchName`"" )
+    if ( $CurrentBranch -ne $BranchName ){
+        $Checkout = (& git checkout -b "`"$BranchName`"" )
+        $ChangeBranch = $true
+    }
+
+
+    $Commit   = (& git.exe commit -m "`"$CommitMessage`"" )
+
 
     if ( $Commit ){
         if ( !($Commit -like "*nothing to commit*") ){
             if ( $Push ){
-                $PushMessage = (& git.exe push -u origin master --verbose)
+                $PushMessage = Invoke-GitPush -FilePath $FilePath -BranchName $BranchName -PassThru
             }
         }
+    }
+
+    if ( $ChangeBranch ){
+        $Checkout = (& git checkout "`"$CurrentBranch`"" )
     }
 
     if ( $PassThru ){
@@ -2519,6 +2784,94 @@ Function Invoke-GitCommit {
         }
 
         return $PSO
+    }
+}
+Function Invoke-GitPush {
+<#
+    .SYNOPSIS
+        Invoke git push
+    .EXAMPLE
+        Invoke-GitPush -FilePath $FilePath [-BranchName $BranchName="origin master"] [-PassThru $PassThru]
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 05.11.20
+        VER     1
+#>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true, Position = 0, HelpMessage = "Script file path." )]
+        [string] $FilePath,
+        [Parameter(Mandatory = $false, Position = 3, HelpMessage = "Branch name." )]
+        [string] $BranchName = "origin master",
+        [switch] $PassThru
+    )
+
+    $FileExt     = Split-Path -path $FilePath -Extension
+
+    if ( $FileExt -eq ".psm1" ) {
+        $Location = Split-Path -path $FilePath
+    }
+    Else {
+        $Location = Split-Path -path (Split-Path -path $FilePath -Parent) -parent
+    }
+
+    Set-Location $Location
+
+    $ArgList = @()
+    $ArgList += "push"
+    $ArgList += "-u"
+    $ArgList += "origin"
+    $ArgList += "$BranchName"
+    $ArgList += "--verbose"
+
+    $PushMessage = (& git.exe $ArgList)
+
+    if ( $PassThru ){
+        return $PushMessage
+    }
+}
+Function Invoke-GitAdd {
+<#
+    .SYNOPSIS
+        Invoke git add
+    .EXAMPLE
+        Invoke-GitAdd -FilePath $FilePath [-AddFiles $AddFiles="."] [-PassThru $PassThru]
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 05.11.20
+        VER     1
+#>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true, Position = 0, HelpMessage = "Script file path." )]
+        [string] $FilePath,
+        [Parameter(Mandatory = $false, Position = 3, HelpMessage = "Branch name." )]
+        [string[]] $AddFiles = ".",
+        [switch] $PassThru
+    )
+
+    $FileExt     = Split-Path -path $FilePath -Extension
+
+    if ( $FileExt -eq ".psm1" ) {
+        $Location = Split-Path -path $FilePath
+    }
+    Else {
+        $Location = Split-Path -path (Split-Path -path $FilePath -Parent) -parent
+    }
+
+    Set-Location $Location
+
+    $AddFiles         = $AddFiles -join ", "
+
+    $ArgList = @()
+    $ArgList += "add"
+    $ArgList += "$AddFiles"
+    $ArgList += "--verbose"
+
+    $PushMessage = (& git.exe $ArgList)
+
+    if ( $PassThru ){
+        return $PushMessage
     }
 }
 Function Get-CommitLog {
@@ -2548,7 +2901,15 @@ Function Get-CommitLog {
         [switch] $SaveLog
     )
 
-    $Location = Split-Path -path $FilePath -Parent
+    $FileExt     = Split-Path -path $FilePath -Extension
+
+    if ( $FileExt -eq ".psm1" ) {
+        $Location = Split-Path -path $FilePath
+    }
+    Else {
+        $Location = Split-Path -path (Split-Path -path $FilePath -Parent) -parent
+    }
+
     $FileName = split-path -path $FilePath -LeafBase
     $Log = @()
 
@@ -2612,7 +2973,14 @@ Function Get-ProjectOrigin {
             [string] $FilePath
         )
 
-        $Location   = Split-Path -path $FilePath -Parent
+        $FileExt     = Split-Path -path $FilePath -Extension
+
+        if ( $FileExt -eq ".psm1" ) {
+            $Location = Split-Path -path $FilePath
+        }
+        Else {
+            $Location = Split-Path -path (Split-Path -path $FilePath -Parent) -parent
+        }
         $ModuleName = split-path -path $FilePath -LeafBase
         Set-Location -path $Location
 
@@ -2623,7 +2991,102 @@ Function Get-ProjectOrigin {
         }
         return $Origin
 }
+Function Get-GitRemoteBranchList {
+<#
+    .SYNOPSIS
+        Get git remote branch list
+    .DESCRIPTION
+        Get git project remote branch list.
+    .EXAMPLE
+        Get-GitRemoteBranchList -FilePath $FilePath
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 11.11.20
+        VER     1
+#>
+        [OutputType([PsObject[]])]
+        [CmdletBinding()]
+        param (
+            [Parameter(Mandatory = $true, Position = 0, HelpMessage = "Script file path." )]
+            [string] $FilePath
+        )
 
+        $FileExt     = Split-Path -path $FilePath -Extension
+
+        if ( $FileExt -eq ".psm1" ) {
+            $Location = Split-Path -path $FilePath
+        }
+        Else {
+            $Location = Split-Path -path (Split-Path -path $FilePath -Parent) -parent
+        }
+
+        Set-Location $Location
+
+        $StartArguments  = @()
+        $StartArguments += "ls-remote"
+        $StartArguments += "--heads"
+
+        $BaranchList = & git $StartArguments
+        $BranchArray = @()
+
+        foreach ( $item in (1..($BaranchList.count-1))){
+            $Array = $BaranchList[$item].split(" ")
+            $PSO = [PSCustomObject]@{
+                CommitHash = $Array[0]
+                FullBranch = $Array[1]
+                BranchName = $Array[1].split("/")[2]
+            }
+
+            $BranchArray += $PSO
+        }
+
+        return $BranchArray
+}
+Function Get-CurrentGitBranch {
+<#
+    .SYNOPSIS
+        Get current git branch
+    .DESCRIPTION
+        Get git project current branch.
+    .EXAMPLE
+        Get-CurrentGitBranch -FilePath $FilePath
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 11.11.20
+        VER     1
+#>
+        [OutputType([PsObject[]])]
+        [CmdletBinding()]
+        param (
+            [Parameter(Mandatory = $true, Position = 0, HelpMessage = "Script file path." )]
+            [string] $FilePath
+        )
+
+        $FileExt     = Split-Path -path $FilePath -Extension
+
+        if ( $FileExt -eq ".psm1" ) {
+            $Location = Split-Path -path $FilePath
+        }
+        Else {
+            $Location = Split-Path -path (Split-Path -path $FilePath -Parent) -parent
+        }
+
+        Set-Location $Location
+
+
+        $BranchList = & git branch
+
+        foreach ( $item in $BranchList ){
+            $Array = $item.split(" ")
+            if ( $Array.count -eq 2 ){
+                $CurrentBranch = $Array[1]
+                break
+            }
+
+        }
+
+        return $CurrentBranch
+}
 Function Open-InVscode {
 <#
     .SYNOPSIS
@@ -2648,7 +3111,9 @@ Function Open-InVscode {
             [switch] $ReuseOpenWindow,
             [Parameter(Mandatory = $false, Position = 3, ParameterSetName = "Compare", HelpMessage = "Visual compare two files." )]
             [switch] $Compare,
-            [Parameter(Mandatory = $false, Position = 4, HelpMessage = "Return object." )]
+            [Parameter(Mandatory = $false, Position = 4, ParameterSetName = "Wait", HelpMessage = "Wait until windows closed." )]
+            [switch] $Wait,
+            [Parameter(Mandatory = $false, Position = 5, HelpMessage = "Return object." )]
             [switch] $PassThru
         )
 
@@ -2656,6 +3121,9 @@ Function Open-InVscode {
 
         if ( $ReuseOpenWindow ){
             $StartArguments += "-r"
+        }
+        if ( $Wait ){
+            $StartArguments += "-w"
         }
         if ( $Compare ){
             $StartArguments += "-d"
@@ -2672,6 +3140,114 @@ Function Open-InVscode {
             Return $Res
         }
 }
+Function Get-ASTVariableValue {
+<#
+    .SYNOPSIS
+        Get AST variable value
+    .DESCRIPTION
+        Get variable value from AST.
+    .EXAMPLE
+        Get-ASTVariableValue -FilePath $FilePath -VariableName $VariableName
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 11.11.20
+        VER     1
+#>
+    [OutputType([string[]])]
+    [CmdletBinding()]
+    param (
+        [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Script file path." )]
+        [string] $FilePath,
+        [Parameter( Mandatory = $true, Position = 1, HelpMessage = "Variable name." )]
+        [string] $VariableName
+    )
 
+    # Todo: Implement line breaking "`" and line joining ";"
 
-Export-ModuleMember -Function Get-FunctionDetails, Get-FunctionChanges, Get-CommitInfo, Get-ChangeLog, Get-ModuleVersion, Start-FunctionTest, Remove-RightSpace, Start-ScriptAnalyzer, Update-HelpContent, Update-ModuleMetaData, Get-ChangeStatus, Set-ChangeStatus, Update-EmptySettings, Get-ModuleHelpContent, Get-PesterTemplate, Get-CommentRegions, New-ModuleMetaData, Get-ProjectGitStatus, Invoke-GitCommit, Get-CommitLog, Get-ProjectOrigin, Open-InVscode
+    $Res     = @()
+    $Content = Get-Content -path $FilePath
+    $Name    = $VariableName.split(".")[0]
+
+    $Tokens    = [System.Management.Automation.PSParser]::Tokenize($Content, [ref]$null)
+    $VarTokens = $Tokens | Where-Object { $_.type -eq "Variable" -and $_.Content -eq $Name }
+
+    foreach ( $line in $VarTokens ){
+        $Operators = $Tokens | Where-Object { $_.StartLine -eq $line.StartLine -and $_.type -ne "NewLine" }
+        $Data      = $Operators.Content -join ""
+        $Array     = $Data.split("=")
+        $Var       = $Array[0]
+        $Value     = $Array[1]
+        if ( $Var.contains($VariableName) ){
+            $PSO = [PSCustomObject]@{
+                FilePath  = $FilePath
+                Name      = $VariableName
+                Value     = $Value
+                Data      = $Data
+                StartLine = $line.StartLine
+            }
+            $Res += $PSO
+        }
+    }
+
+    return $res
+}
+Function Set-ASTVariableValue {
+<#
+    .SYNOPSIS
+        Set AST variable value
+    .DESCRIPTION
+        Set variable value to script file.
+    .EXAMPLE
+        Set-ASTVariableValue -FilePath $FilePath -VariableName $VariableName -VariableValue $VariableValue
+    .NOTES
+        AUTHOR  Alexk
+        CREATED 11.11.20
+        VER     1
+#>
+    [OutputType([string[]])]
+    [CmdletBinding()]
+    param (
+        [Parameter( Mandatory = $true, Position = 0, HelpMessage = "Script file path." )]
+        [string] $FilePath,
+        [Parameter( Mandatory = $true, Position = 1, HelpMessage = "Variable name." )]
+        [string] $VariableName,
+        [Parameter( Mandatory = $true, Position = 2, HelpMessage = "Variable value." )]
+        [string] $VariableValue
+    )
+    # Todo: Implement line breaking "`" and line joining ";"
+
+    $Res     = @()
+    $Content = Get-Content -path $FilePath
+    $Name    = $VariableName.split(".")[0]
+
+    $Tokens    = [System.Management.Automation.PSParser]::Tokenize($Content, [ref]$null)
+    $VarTokens = $Tokens | Where-Object { $_.type -eq "Variable" -and $_.Content -eq $Name }
+
+    if ( $VarTokens ){
+        $Content = Get-Content -Path $FilePath
+        [string[]]$MultiLineContent = @()
+
+        foreach ($item in (0..($Content.count-2))) {
+            $MultiLineContent += "$($Content[$item])`n"
+        }
+        $MultiLineContent += $Content[$Content.count - 1]
+    }
+
+    foreach ( $line in $VarTokens ){
+        $FileLine    = $MultiLineContent[($line.StartLine - 1)]
+        if ( $FileLine.Contains($VariableName) ){
+            $FileValue        = $FileLine.split("=")[1].trim()
+            if ( $FileValue -ne $VariableValue ) {
+                $NewFileLine      = $FileLine.replace($FileValue, $VariableValue)
+                $MultiLineContent = $MultiLineContent.Replace($FileLine, $NewFileLine)
+                $Replaced         = $true
+            }
+        }
+    }
+
+    if ( $Replaced ) {
+        $MultiLineContent | Out-File -FilePath $FilePath -Encoding utf8BOM -force -NoNewline
+    }
+}
+
+Export-ModuleMember -Function Get-FunctionDetails, Get-FunctionChanges, Get-CommitInfo, Get-ChangeLog, Get-ModuleVersion, Start-FunctionTest, Remove-RightSpace, Start-ScriptAnalyzer, Update-HelpContent, Update-ModuleMetaData, Get-ChangeStatus, Set-ChangeStatus, Update-EmptySettings, Get-ModuleHelpContent, Get-PesterTemplate, Get-CommentRegions, New-ModuleMetaData, Get-ProjectGitStatus, Invoke-GitCommit, Get-CommitLog, Get-ProjectOrigin, Open-InVscode, Invoke-GitPush, Invoke-GitAdd, Get-GitRemoteBranchList, Get-CurrentGitBranch, Get-ASTVariableValue, Set-ASTVariableValue
