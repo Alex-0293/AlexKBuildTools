@@ -1,4 +1,0 @@
-04.11.2020 20:03:00 Starting [PreCommit] sequence.
-04.11.2020 20:03:00 Start creating empty setting file for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1]
-04.11.2020 20:03:00 Finish creating empty setting file for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1]
-04.11.2020 20:03:00 Starting linter [PSScriptAnalyzer] for [C:\Program Files\WindowsPowerShell\Modules\AlexKBuildTools\AlexkBuildTools.psm1].

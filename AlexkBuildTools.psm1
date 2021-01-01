@@ -3178,11 +3178,17 @@ Function Get-ASTVariableValue {
         $Var       = $Array[0]
         $Value     = $Array[1]
         if ( $Var.contains($VariableName) ){
+            $ValueArray   = $Value.split("#")
+            $Value        = $ValueArray[0] 
+            if ( $ValueArray.count -gt 1 ){
+                $Comment      = ($ValueArray | select-object -Skip 1) -join "#"
+            }
             $PSO = [PSCustomObject]@{
                 FilePath  = $FilePath
                 Name      = $VariableName
-                Value     = $Value
+                Value     = $Value.trim()
                 Data      = $Data
+                Comment   = $Comment
                 StartLine = $line.StartLine
             }
             $Res += $PSO
@@ -3215,10 +3221,10 @@ Function Set-ASTVariableValue {
         [string] $VariableValue
     )
     # Todo: Implement line breaking "`" and line joining ";"
-
-    $Res     = @()
-    $Content = Get-Content -path $FilePath
-    $Name    = $VariableName.split(".")[0]
+    $Replaced = $false
+    $Res      = @()
+    $Content  = Get-Content -path $FilePath
+    $Name     = $VariableName.split(".")[0]
 
     $Tokens    = [System.Management.Automation.PSParser]::Tokenize($Content, [ref]$null)
     $VarTokens = $Tokens | Where-Object { $_.type -eq "Variable" -and $_.Content -eq $Name }
@@ -3228,7 +3234,12 @@ Function Set-ASTVariableValue {
         [string[]]$MultiLineContent = @()
 
         foreach ($item in (0..($Content.count-2))) {
-            $MultiLineContent += "$($Content[$item])`n"
+            if ( !$Content[$item].contains("`n") ) {
+                $MultiLineContent += "$($Content[$item])`n"
+            }
+            Else {
+                $MultiLineContent += $Content[$item]
+            }
         }
         $MultiLineContent += $Content[$Content.count - 1]
     }
@@ -3236,11 +3247,16 @@ Function Set-ASTVariableValue {
     foreach ( $line in $VarTokens ){
         $FileLine    = $MultiLineContent[($line.StartLine - 1)]
         if ( $FileLine.Contains($VariableName) ){
-            $FileValue        = $FileLine.split("=")[1].trim()
-            if ( $FileValue -ne $VariableValue ) {
-                $NewFileLine      = $FileLine.replace($FileValue, $VariableValue)
-                $MultiLineContent = $MultiLineContent.Replace($FileLine, $NewFileLine)
-                $Replaced         = $true
+            $FileValue        = $FileLine.split("=")[1]
+            if ( $FileValue ) {           
+                if ( $FileValue -notlike "*$VariableName*" ) {
+                    if ( $FileValue -ne $VariableValue ) {
+                        $FileValue        = $FileValue.split("#")[0]                                            
+                        $NewFileLine      = $FileLine.replace($FileValue.trim(), $VariableValue)
+                        $MultiLineContent = $MultiLineContent.Replace($FileLine, $NewFileLine)
+                        $Replaced         = $true
+                    }
+                }
             }
         }
     }

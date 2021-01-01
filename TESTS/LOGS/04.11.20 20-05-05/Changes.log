@@ -1,7 +1,0 @@
-Changes 04.11.20 08:05:10
-================
-
-Changed functions:
-   Function: Update-HelpContent
-       Line difference [2]
-   Function: Update-HelpContent\Get-NewDescription
